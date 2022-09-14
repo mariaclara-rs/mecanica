@@ -1,0 +1,23 @@
+
+.centralizar{
+    width: 50%;
+    height: 60%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    margin: auto;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+
+}
+#tituloForm{
+    font-weight: 400;
+    font-size: 1.2em;
+}
+.centralizarVerticalForm{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    
+}
