@@ -11,7 +11,7 @@ app.use(routes);
 //use indica que deve ser aplicado para todas as rotas
 //nativamente o express não utiliza o json
 
-app.listen(3344);
+app.listen(process.env.PORT || 3344);
 
 
 
