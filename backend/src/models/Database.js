@@ -8,10 +8,10 @@ module.exports = new
 
         async conecta() {
             const config = {
-                host: process.env.HOST,
-                database: process.env.DATABASE,
-                user: process.env.USER,
-                password: process.env.PASSWORD
+                host: "sql10.freesqldatabase.com",
+                database: "sql10520488",
+                user: "sql10520488",
+                password: "El6at1cYxl"
             }
             try {
                 this.connection = await new mysql.createConnection(config);
