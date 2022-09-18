@@ -62,7 +62,7 @@ routes.get('/clientes/nome',CliCtrl.listarPorNome);
 
 const MarcaCtrl = require('./Controllers/MarcaCtrl');
 
-routes.get('/marcas',MarcaCtrl.listar);
+routes.get('/marcas',checkToken, MarcaCtrl.listar);
 routes.post('/marcas/gravar',MarcaCtrl.gravar);
 routes.put('/marcas/editar',MarcaCtrl.editar);
 routes.delete('/marcas/:id',MarcaCtrl.excluir);
