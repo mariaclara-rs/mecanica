@@ -8,7 +8,7 @@ export default function Form({ props, children, className = "row g-3" }) {
         <form className={className} {...props}>{children}</form>
     )
 }
-export function InputRO({ cols, id, label,...inputprops }) {
+export function InputRO({ cols, id, label, ...inputprops }) {
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>
@@ -16,13 +16,17 @@ export function InputRO({ cols, id, label,...inputprops }) {
         </div>
     )
 }
-export function Input({ cols, id, label, mascara, register, erro,...inputprops }) {
+export function Input({ cols, id, label, mascara, register, erro, ...inputprops }) {
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>
-            <InputMask mask={mascara} maskChar="" className="form-control" id={id} {...register(id)} {...inputprops} />
+            {register ?
+                <InputMask mask={mascara} maskChar="" className="form-control" id={id} {...register(id)} {...inputprops} />
+                :
+                <InputMask mask={mascara} maskChar="" className="form-control" id={id} {...inputprops} />
+            }
             {erro && <p className="erroForm">{erro?.message}</p>}
-            
+
         </div>
 
     )

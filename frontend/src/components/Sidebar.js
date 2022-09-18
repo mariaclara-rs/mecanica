@@ -4,15 +4,16 @@ import '../style.css'
 import { GrTroubleshoot } from "react-icons/gr";
 import { BiGroup, BiCar, BiBuildings, BiBriefcaseAlt2,BiGlobe, BiMoney} from "react-icons/bi"
 import { BsClockHistory } from 'react-icons/bs'
-import {RiListSettingsLine} from 'react-icons/ri'
+import {RiListSettingsLine,RiWallet3Line} from 'react-icons/ri'
 //FaTools
 
 function Sidebar() {
 
     let active=true
     const options = [{ link: "/ordemservico", name: "Ordem de Serviço", icon:<RiListSettingsLine size={20} style={{ margin: '0.3rem' }} /> },
-    { link: "/contareceber", name: "Contas a Receber", icon: <BiMoney size={20} style={{ margin: '0.3rem' }} /> },
     { link: "/agendamentos", name: "Agendamentos", icon: <BsClockHistory size={18} style={{ margin: '0.3rem' }} /> },
+    { link: "/contareceber", name: "Contas a Receber", icon: <BiMoney size={20} style={{ margin: '0.3rem' }} /> },
+    { link: "/contapagar", name: "Contas a Pagar", icon: <RiWallet3Line size={20} style={{ margin: '0.3rem' }} /> },
     { link: "/clientes", name: "Clientes", icon: <BiGroup size={20} style={{ margin: '0.3rem' }} /> }, 
     { link: "/veiculos", name: "Veículos", icon: <BiCar size={20} style={{ margin: '0.3rem' }} /> }, 
     { link: "/servicos", name: "Serviços", icon: <BiBriefcaseAlt2 size={20} style={{ margin: '0.3rem' }} /> }, 

@@ -2,17 +2,25 @@ export default function Select({ cols, label, id, register, value, onChange, err
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>
-            <select id={id} name={id} className="form-select" {...register(id)}
-                value={value} onChange={onChange}>
-                <option value={""} disabled selected>Selecione</option>
-                {children}
-            </select>
+            {register ?
+                <select id={id} name={id} className="form-select" {...register(id)}
+                    value={value} onChange={onChange} defaultValue="">
+                    <option value="" disabled >Selecione</option>
+                    {children}
+                </select>
+                :
+                <select id={id} name={id} className="form-select"
+                    value={value} onChange={onChange} defaultValue="">
+                    <option value="" disabled>Selecione</option>
+                    {children}
+                </select>
+            }
             {erro && <p className="erroForm">{erro?.message}</p>}
-        </div>
+        </div >
     )
 }
 
-export function SelectReadOnly({ cols, label, id, children}) {
+export function SelectReadOnly({ cols, label, id, children }) {
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>

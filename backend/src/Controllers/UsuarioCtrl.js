@@ -6,7 +6,7 @@ const saltRounds = 10;
 module.exports = {
     async listar(request,response){
         //console.log(request.headers)
-        const sql = "SELECT * FROM Usuario";
+        const sql = "SELECT * FROM usuario";
         await db.conecta();;
         const usu = await db.consulta(sql)
         return response.json(usu.data);
@@ -17,7 +17,7 @@ module.exports = {
 
         const senhaHash = await bcrypt.hash(senha, saltRounds);
 
-        const sql = "INSERT INTO Usuario (usu_nome,usu_login,usu_senha,mec_id) "+
+        const sql = "INSERT INTO usuario (usu_nome,usu_login,usu_senha,mec_id) "+
                     "values(?,?,?,?)"
         
         const valores = [nome,login,senhaHash,mecId];
@@ -27,7 +27,7 @@ module.exports = {
     },
     async editar (request,response){
         const {id,nome,login,senha,mecId} = request.body;
-        const sql = "UPDATE Usuario SET usu_nome = ?, usu_login = ? WHERE usu_id = ?"
+        const sql = "UPDATE usuario SET usu_nome = ?, usu_login = ? WHERE usu_id = ?"
         const valores = [nome,login,senha,id];
         await db.conecta();
         const result = await db.manipula(sql,valores)
@@ -35,7 +35,7 @@ module.exports = {
     },
     async excluir(request, response){
         const {id} = request.params;
-        const sql = "DELETE FROM Usuario WHERE usu_id=?";
+        const sql = "DELETE FROM usuario WHERE usu_id=?";
         await db.conecta();
         const result = await db.manipula(sql,[id]);
         return response.json(result);
@@ -43,7 +43,7 @@ module.exports = {
     async login(request,response){
         const {login,senha} = request.query;
         //console.log(request.headers['authorization'])
-        const sql = "SELECT * FROM Usuario WHERE usu_login = ?";
+        const sql = "SELECT * FROM usuario WHERE usu_login = ?";
         await db.conecta();
         const usu = await db.consulta(sql,[login])
 

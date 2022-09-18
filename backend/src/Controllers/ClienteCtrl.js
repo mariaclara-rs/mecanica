@@ -6,7 +6,7 @@ const db = require('../models/Database')
 module.exports = {
     async listar (request, response){
         const con = await db.conecta();
-        const sql = "SELECT * FROM Cliente ORDER BY cli_nome";
+        const sql = "SELECT * FROM cliente ORDER BY cli_nome";
         const cli = await db.consulta(sql);
         return response.json(cli.data);
 
@@ -14,7 +14,7 @@ module.exports = {
     async gravar(request, response){
         const {cpf,nome,email,cep,endereco,tel,num,cidade} = request.body;
         //console.log("gravar\ncpf: "+cpf+"\nnome: "+nome);
-        const sql = "INSERT INTO Cliente (cli_cpf, cli_nome, cli_email, cli_cep, cli_endereco, cli_tel, cli_num, cli_cidade) " +
+        const sql = "INSERT INTO cliente (cli_cpf, cli_nome, cli_email, cli_cep, cli_endereco, cli_tel, cli_num, cli_cidade) " +
             "VALUES (?,?,?,?,?,?,?,?)";
         const valores = [
             cpf, nome, email, cep, endereco, tel, num, cidade
@@ -25,7 +25,7 @@ module.exports = {
     },
     async editar(request, response){
         const {id,cpf,nome,email,cep,endereco,tel,num,cidade} = request.body;
-        const sql = "UPDATE Cliente SET cli_nome = ?, cli_email = ?, cli_cep = ?, cli_endereco = ?, cli_tel = ?, cli_num = ?, cli_cidade = ? "+ 
+        const sql = "UPDATE cliente SET cli_nome = ?, cli_email = ?, cli_cep = ?, cli_endereco = ?, cli_tel = ?, cli_num = ?, cli_cidade = ? "+ 
             "where cli_id = ?";
         const valores = [
             nome, email, cep, endereco, tel, num, cidade, id
@@ -36,7 +36,7 @@ module.exports = {
     },
     async excluir(request, response){
         const {id} = request.params;
-        const sql = "DELETE FROM Cliente WHERE cli_id=?";
+        const sql = "DELETE FROM cliente WHERE cli_id=?";
         await db.conecta();
         const result = await db.manipula(sql,[id]);
         return response.json(result);
@@ -45,7 +45,7 @@ module.exports = {
         const { nome } = request.query;
         const con = await db.conecta();
 
-        const sql = "select * from Cliente where cli_nome LIKE concat('%',?,'%')";
+        const sql = "select * from cliente where cli_nome LIKE concat('%',?,'%')";
         const result = await db.consulta(sql, [nome]);
         return response.json(result);
     },

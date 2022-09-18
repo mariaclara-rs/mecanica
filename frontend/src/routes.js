@@ -13,6 +13,7 @@ import './style.css'
 import { UtilsProvider } from './context/UtilsContext';
 import DadosProvider from './context/DadosContext';
 import Agendamentos from './pages/fundamentais/Agendamentos';
+import ContaPagar from './pages/fundamentais/ContaPagar';
 
 function PrivateRoute() {
 
@@ -39,6 +40,7 @@ function Rotas() {
                             <Route exact path='ordemservico' element={<OrdemServico />} />
                             <Route exact path='contareceber' element={<ContaReceber />} />
                             <Route exact path='/agendamentos' element={<Agendamentos />} />
+                            <Route exact path='/contapagar' element={<ContaPagar/>} />
                         </Route>
 
                     </Routes>

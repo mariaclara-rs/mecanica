@@ -2,7 +2,7 @@ const db = require('../models/Database')
 
 module.exports = {
     async listar(request,response){
-        const sql = "SELECT * FROM Mecanica";
+        const sql = "SELECT * FROM mecanica";
         await db.conecta();
         const mec = await db.consulta(sql);
         return response.json(mec.data)
@@ -10,7 +10,7 @@ module.exports = {
     async gravar(request,response){
         const {nome,tel,cnpj,cep,endereco,num,cidade} = request.body;
 
-        const sql = "INSERT INTO Mecanica (mec_nome,mec_tel,mec_cnpj,mec_cep,mec_endereco,"+
+        const sql = "INSERT INTO mecanica (mec_nome,mec_tel,mec_cnpj,mec_cep,mec_endereco,"+
                     "mec_num,mec_cidade) VALUES (?,?,?,?,?,?,?)"
         const valores = [nome,tel,cnpj,cep,endereco,num,cidade];
         await db.conecta();
@@ -20,7 +20,7 @@ module.exports = {
     async editar(request,response){
         const {id,nome,tel,cnpj,cep,endereco,num,cidade} = request.body;
 
-        const sql = "UPDATE Mecanica SET mec_nome = ?, mec_tel = ?, mec_cnpj = ?, "+
+        const sql = "UPDATE mecanica SET mec_nome = ?, mec_tel = ?, mec_cnpj = ?, "+
                     "mec_cep = ?, mec_endereco = ?, mec_num = ?, mec_cidade = ? "+
                     "WHERE mec_id = ?";
         const valores = [nome,tel,cnpj,cep,endereco,num,cidade,id];

@@ -3,9 +3,10 @@ const db = require('../models/Database')
 module.exports = {
 
     async listar(request, response) {
+
         const con = await db.conecta();
         const sql = "select c.cli_id, cli_nome, cli_tel, ve_id, ve_placa, ve_ano, ve_cor, ve_modelo, m.mc_id, mc_nome from "+
-        "Marca m, Veiculo v, Cliente c "+
+        "marca m, veiculo v, cliente c "+
         "where v.cli_id = c.cli_id and v.mc_id = m.mc_id";
         const ve = await db.consulta(sql);
         return response.json(ve.data);
@@ -16,7 +17,7 @@ module.exports = {
         const con = await db.conecta();
 
         const sql = "select c.cli_id, cli_nome, cli_tel, ve_id, ve_placa, ve_cor, ve_modelo, m.mc_id, mc_nome from " +
-            "Cliente c, Veiculo v, Marca m " +
+            "cliente c, veiculo v, marca m " +
             "where v.cli_id = c.cli_id and v.mc_id = m.mc_id and c.cli_nome LIKE concat('%',?,'%')";
         const result = await db.consulta(sql, [cliente]);
         return response.json(result);
@@ -26,7 +27,7 @@ module.exports = {
         const { cliId } = request.params;
         const con = await db.conecta();
 
-        const sql = "select ve_id, ve_placa from Veiculo v "+
+        const sql = "select ve_id, ve_placa from veiculo v "+
             "where v.cli_id = ?";
         const result = await db.consulta(sql, [cliId]);
         return response.json(result);
@@ -37,7 +38,7 @@ module.exports = {
         const con = await db.conecta();
 
         const sql = "select c.cli_id, cli_nome, cli_tel, ve_id, ve_placa, ve_cor, ve_modelo, m.mc_id, mc_nome from " +
-            "Cliente c, Veiculo v, Marca m " +
+            "cliente c, veiculo v, marca m " +
             "where v.cli_id = c.cli_id and v.mc_id = m.mc_id and mc_nome LIKE concat('%',?,'%')";
         const result = await db.consulta(sql, [marca]);
         return response.json(result);
@@ -48,7 +49,7 @@ module.exports = {
         const con = await db.conecta();
 
         const sql = "select c.cli_id, cli_nome, cli_tel, ve_id, ve_placa, ve_cor, ve_modelo, m.mc_id, mc_nome from " +
-            "Cliente c, Veiculo v, Marca m " +
+            "cliente c, veiculo v, marca m " +
             "where v.cli_id = c.cli_id and v.mc_id = m.mc_id and ve_placa = ?";
         const result = await db.consulta(sql, [placa]);
         return response.json(result);
@@ -74,7 +75,7 @@ module.exports = {
 
     async editar(request, response){
         const {id,placa,cor,modelo,ano,cliId,marcaId} = request.body;
-        const sql = "UPDATE Veiculo SET ve_cor = ?, ve_modelo = ?, ve_ano = ?, mc_id = ?, cli_id = ? "+ 
+        const sql = "UPDATE veiculo SET ve_cor = ?, ve_modelo = ?, ve_ano = ?, mc_id = ?, cli_id = ? "+ 
             "where ve_id = ?";
         const valores = [
             cor, modelo, ano, marcaId, cliId, id
@@ -86,7 +87,7 @@ module.exports = {
 
     async excluir(request, response){
         const {id} = request.params;
-        const sql = "DELETE FROM Veiculo WHERE ve_id=?";
+        const sql = "DELETE FROM veiculo WHERE ve_id=?";
         await db.conecta();
         const result = await db.manipula(sql,[id]);
         return response.json(result);
