@@ -37,13 +37,13 @@ function Login() {
             
         };
         const resp = await api.get('/login',{params})
-       
-        if(resp.data.status){
+        navigate("/clientes")
+        /*if(resp.data.status){
             api.defaults.headers = {'Authorization': resp.data.token}
             localStorage.setItem("token",resp.data.token)
 
             navigate("/clientes")
-        }
+        }*/
         
     }
    
