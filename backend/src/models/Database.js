@@ -11,7 +11,7 @@ module.exports = new
                 host: process.env.HOST,
                 database: "sql10520488",
                 user: "sql10520488",
-                password: process.env.PASSWORD
+                password: "El6at1cYxl"
             }
             try {
                 this.connection = await new mysql.createConnection(config);
