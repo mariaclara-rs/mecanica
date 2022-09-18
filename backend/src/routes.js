@@ -54,7 +54,7 @@ routes.delete('/pecaos/:os_id',PecaOSCtrl.excluirPorOS);
 
 const CliCtrl = require('./Controllers/ClienteCtrl');
 
-routes.get('/clientes',checkToken,CliCtrl.listar);
+routes.get('/clientes',CliCtrl.listar);
 routes.post('/clientes/cadastrar',CliCtrl.gravar);
 routes.put('/clientes/editar',CliCtrl.editar);
 routes.delete('/clientes/:id',CliCtrl.excluir);
