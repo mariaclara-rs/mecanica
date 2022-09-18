@@ -30,18 +30,18 @@ function Rotas() {
                     <Routes>
                         <Route exact path="/" element={<Login />} />
 
-                        <Route exact path="/" element={<PrivateRoute />}>
-                            <Route exact path="/clientes" element={<Cliente />} />
-                            <Route path="/servicos" element={<Servico />} />
-                            <Route exact path="/veiculos" element={<Veiculo />} />
-                            <Route exact path="/distribuidoras" element={<Distribuidora />} />
-                            <Route exact path='/pecas' element={<Peca />} />
-                            <Route exact path='/marcas' element={<Marca />} />
-                            <Route exact path='ordemservico' element={<OrdemServico />} />
-                            <Route exact path='contareceber' element={<ContaReceber />} />
-                            <Route exact path='/agendamentos' element={<Agendamentos />} />
-                            <Route exact path='/contapagar' element={<ContaPagar/>} />
-                        </Route>
+
+                        <Route exact path="/clientes" element={<Cliente />} />
+                        <Route path="/servicos" element={<Servico />} />
+                        <Route exact path="/veiculos" element={<Veiculo />} />
+                        <Route exact path="/distribuidoras" element={<Distribuidora />} />
+                        <Route exact path='/pecas' element={<Peca />} />
+                        <Route exact path='/marcas' element={<Marca />} />
+                        <Route exact path='ordemservico' element={<OrdemServico />} />
+                        <Route exact path='contareceber' element={<ContaReceber />} />
+                        <Route exact path='/agendamentos' element={<Agendamentos />} />
+                        <Route exact path='/contapagar' element={<ContaPagar />} />
+
 
                     </Routes>
                 </BrowserRouter>

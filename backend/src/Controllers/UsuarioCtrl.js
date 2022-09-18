@@ -63,6 +63,6 @@ module.exports = {
             else
                 usu.message="Senha incorreta"
         }
-        return response.json(usu)
+        return response.json({"msg":"aqui"})
     }
 }
