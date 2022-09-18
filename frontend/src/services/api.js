@@ -4,7 +4,8 @@ import { token } from '../auth';
 const api  = axios.create({
     baseURL:'https://mecanicaapi.vercel.app',
     headers: {
-      'Authorization': token()
+      'Authorization': token(),
+      'Access-Control-Allow-Origin': "*"
     }
 });
 
