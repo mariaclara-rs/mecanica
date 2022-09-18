@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise');
-
+require('dotenv').config()
 module.exports = new
     class Database {
         constructor() {
@@ -8,10 +8,10 @@ module.exports = new
 
         async conecta() {
             const config = {
-                host: "sql10.freesqldatabase.com",
-                database: "sql10520488",
-                user: "sql10520488",
-                password: "El6at1cYxl"
+                host: process.env.HOST,
+                database: process.env.DATABASE,
+                user: process.env.USER,
+                password: process.env.PASSWORD
             }
             try {
                 this.connection = await new mysql.createConnection(config);
