@@ -4,22 +4,8 @@ const cors = require('cors')
 const app = express();
 require('dotenv').config()
 
-const corsOpts = {
-    origin: '*',
-  
-    methods: [
-      'GET',
-      'POST',
-      'PUT',
-      'DELETE'
-    ],
-  
-    allowedHeaders: [
-      'Content-Type',
-    ],
-  };
 
-app.use(cors(corsOpts));
+app.use(cors());
 app.use(express.json());
 app.use(routes);
 //use indica que deve ser aplicado para todas as rotas
