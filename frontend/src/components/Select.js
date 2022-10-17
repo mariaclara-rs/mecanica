@@ -20,12 +20,13 @@ export default function Select({ cols, label, id, register, value, onChange, err
     )
 }
 
-export function SelectReadOnly({ cols, label, id, children }) {
+export function SelectReadOnly({ cols, label, id, children,value=id}) {
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>
             <select disabled id={id} name={id} className="form-select"
-                value={id}>
+                value={value}>
+                <option value="" disabled>Selecione</option>
                 {children}
             </select>
         </div>

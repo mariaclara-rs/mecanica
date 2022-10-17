@@ -29,6 +29,9 @@ const CrCtrl = require('./Controllers/ContaReceberCtrl')
 
 routes.get('/contareceber',CrCtrl.listar);
 routes.post('/contareceber',CrCtrl.gravar)
+routes.post('/contareceber/completo',CrCtrl.gravarCompleto);
+routes.put('/contareceber',CrCtrl.editar);
+routes.get('/contareceber/:os_id',CrCtrl.listarPorOS);
 
 routes.post('/authenticate',checkToken, (req,resp)=>{return resp.json({"status":true})})
 
@@ -36,6 +39,7 @@ const OSCtrl = require('./Controllers/OSCtrl');
 
 routes.get('/ordemservico',OSCtrl.listar);
 routes.post('/ordemservico',OSCtrl.gravar);
+routes.post('/ordemservico/orcamento',OSCtrl.gravarOrcamento);
 routes.put('/ordemservico',OSCtrl.editar);
 routes.put('/ordemservico/editar',OSCtrl.editar2);
 routes.delete('/ordemservico/:os_id',OSCtrl.excluir);
@@ -118,5 +122,26 @@ routes.put('/usuario/editar',UsuCtrl.editar);
 routes.delete('/usuario/:id',UsuCtrl.excluir)
 
 routes.get('/login',UsuCtrl.login);
+
+const TpDespCtrl = require('./Controllers/TipoDespesaCtrl');
+
+routes.get('/tpdespesa',TpDespCtrl.listar);
+
+const CpCtrl = require('./Controllers/ContaPagarCtrl')
+
+routes.get('/contapagar',CpCtrl.listar);
+routes.post('/contapagar',CpCtrl.gravar)
+routes.put('/contapagar',CpCtrl.editarSimplificado);
+
+const ParcelaCtrl = require('./Controllers/ParcelaCtrl')
+
+routes.post('/parcela',ParcelaCtrl.gravar)
+routes.put('/parcela',ParcelaCtrl.editar);
+routes.delete('/parcela/:cp_id',ParcelaCtrl.excluirPorCP);
+
+const PecaCPCtrl = require('./Controllers/PecaCPCtrl')
+
+routes.post('/pecacp',PecaCPCtrl.gravar)
+routes.delete('/pecacp/:cp_id',PecaCPCtrl.excluirPorCP);
 
 module.exports = routes;

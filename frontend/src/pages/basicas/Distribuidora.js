@@ -202,11 +202,11 @@ function Distribuidora() {
                                         <td>{d.dist_cnpj}</td>
                                         <td >
                                             <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { limparCampos(); clearErrors(); editarDist(d.dist_id, i) }}>
-                                                <FiEdit style={{ color: '#231f20' }} />
+                                                <FiEdit className='btEditar' />
                                             </Button>
                                             <Button
                                                 className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiTrash style={{ color: '#231f20' }} onClick={() => { setId(d.dist_id); setDistTemp(d.dist_nome); setModalExcluir(true); }} />
+                                                <FiTrash className='btExcluir' onClick={() => { setId(d.dist_id); setDistTemp(d.dist_nome); setModalExcluir(true); }} />
                                             </Button>
                                         </td>
                                     </tr>

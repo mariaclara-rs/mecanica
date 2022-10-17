@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useInsertionEffect } from 'react';
 import api from '../../services/api';
 
 import { Button, Modal } from 'react-bootstrap';
@@ -9,16 +9,21 @@ import ModalExcluir from '../../components/ModalExcluir';
 import BtAdicionar from '../../components/BtAdicionar';
 import Select, { SelectReadOnly } from '../../components/Select';
 
-import { FiTrash, FiEdit, FiCheckCircle } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiCheckCircle, FiDownload } from 'react-icons/fi';
 import { BsPlusLg } from 'react-icons/bs';
 import { RiListSettingsLine, RiMoneyDollarCircleLine } from 'react-icons/ri';
-
-
+import { MdTimeline } from 'react-icons/md';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 import { DadosContext } from '../../context/DadosContext';
 import { UtilsContext } from '../../context/UtilsContext'
+
+import ToastMessage from '../../components/ToastMessage';
+
+import EmitirOS from '../../reports/EmitirOS';
+import HistoricoPagamentoOS from '../../reports/HistoricoPagamentoOS';
+import EmitirOrcamento from '../../reports/EmitirOrcamento';
 
 function OS() {
 
@@ -53,8 +58,23 @@ function OS() {
     const [filtro, setFiltro] = useState("");
     const [add, setAdd] = useState(true);
 
+    const [orcamento, setOrcamento] = useState(false);
+    const [flagCliente, setFlagCliente] = useState(false);
+
+    const [nomeCliente, setNomeCliente] = useState("");
+    const [foneCliente, setFoneCliente] = useState("");
+
     const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas } = useContext(DadosContext)
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses } = useContext(UtilsContext)
+
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+    const [gravouCliente, setGravouCliente] = useState(false);
+    const [idNovoCliente, setIdNovoCliente] = useState("");
+
+    const [primeiroClique, setPrimeiroClique] = useState(false);
 
     const schema = yup.object({
         cliId: yup.string().required("Selecione um cliente"),
@@ -62,6 +82,8 @@ function OS() {
         km: yup.string().required("Informe a kilometragem"),
         metodoReceb: yup.string().required("Selecione um Método de Recebimento"),
         parcelas: yup.string().required("Informe a quantidade de parcelas (1 para à vista)"),
+        nomeCliente: yup.string().required("Informe o nome do cliente").min(3, "Nome deve ter pelo menos 3 caracteres"),
+        foneCliente: yup.string().min(8, "Informe um número válido").max(11, "Informe um número válido")
     }).required();
 
     const { register, handleSubmit, trigger, setValue, clearErrors, reset, formState: { errors, isValid } } = useForm({
@@ -74,7 +96,6 @@ function OS() {
         carregarServicos();
         carregarPecas();
     }, []);
-
     useEffect(() => {
         atualizaVal();
     }, [serId]);
@@ -83,22 +104,27 @@ function OS() {
     }, [pecId, pecQtde]);
 
     useEffect(() => {
-        carregarVeiculos().then(()=>{
-            if(o!=null){
-                console.log(JSON.stringify(o))
+        carregarVeiculos().then(() => {
+            if (o != null && primeiroClique) {
                 setVeId(o.ve_id)
+                setPrimeiroClique(false);
             }
         });
-        
+
     }, [cliId]);
 
-    useEffect(()=>{
+    useEffect(() => {
         clearErrors();
-    },[modal, modalFechar]);
+    }, [modal, modalFechar]);
 
+    useEffect(() => {
+        if (!orcamento)
+            setFlagCliente(false);
+    }, [orcamento])
 
     async function carregarOS() {
         const resp = await api.get('/ordemservico');
+        console.log("resp :" + JSON.stringify(resp.data));
         setOs(resp.data);
     }
 
@@ -170,6 +196,12 @@ function OS() {
         setKm("");
         setSerId("");
         setSerVal("");
+        setNomeCliente("");
+        setValue("nomeCliente", "");
+        setFoneCliente("");
+        setValue("foneCliente", "")
+        setIdNovoCliente("");
+        setGravouCliente(false);
     }
     function limparCamposFOS() {
         setCliente();
@@ -193,21 +225,123 @@ function OS() {
         return soma
     }
 
-    async function excluirOS(){
-        const resp = await api.delete('/ordemservico/'+o.os_id)
-        
-        if(resp.data.status){
-            alerta('mensagemForm mensagemForm-Sucesso', 'OS excluída').then(() => { setModalExcluir(false); setO(null); })
+    async function excluirOS() {
+        const resp = await api.delete('/ordemservico/' + o.os_id)
+
+        if (resp.data.status) {
+            setTituloToast("Exclusão")
+            setMsgToast("Orçamento excluído");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setO(null);
         }
-        else{
-            alerta('mensagemForm mensagemForm-Erro', 'Erro. OS possui contas a receber').then(() => { setModalExcluir(false); setO(null) })
+        else {
+            setTituloToast("Exclusão")
+            setMsgToast("Erro ao tentar excluir orçamento");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setO(null);
         }
         carregarOS();
     }
 
+    async function gravarOrcamento() {
+
+        if (add) {
+            if ((flagCliente && gravouCliente) || (!flagCliente && cliId != undefined && cliId != "")) {
+                //com cadastro de cliente
+                const resp = await api.post('/ordemservico/orcamento', {
+                    dataAbertura: (new Date()).toISOString().split('T')[0],
+                    ve_id: (!flagCliente && veId != "" && veId != undefined) ? veId : null,
+                    vekm: (!flagCliente && km != "" && km != undefined) ? km : null,
+                    valTot: calcTot(),
+                    status: "O",
+                    observacoes: "",
+                    cli_id: flagCliente ? idNovoCliente : cliId
+                }).then((resp) => {
+                    for (let i = 0; i < serOS.length; i++) {
+                        api.post('/servicoos', {
+                            os_id: resp.data.lastId,
+                            ser_id: serOS[i].id,
+                            serOS_val: serOS[i].valor
+                        }).then((resp2) => { });
+                    }
+                    for (let i = 0; i < pecOS.length; i++) {
+                        api.post('/pecaos', {
+                            os_id: resp.data.lastId,
+                            pec_id: pecOS[i].id,
+                            pecOS_valTot: pecOS[i].valor,
+                            pecOS_qtde: pecOS[i].qtde
+                        }).then((resp3) => { });
+                    }
+                });
+                limparCampos();
+                carregarOS();
+                setModal(false);
+                setTituloToast("Cadastro")
+                setMsgToast("Orçamento registrado com sucesso");
+                setClasseToast('Success');
+                setToast(true);
+            }
+            else {
+                setClasses("mensagemForm mensagemFom-Erro");
+                alerta('mensagemForm mensagemFom-Erro', 'Erro. Selecione um cliente ou registre um novo');
+                console.log(classes)
+            }
+
+        }
+        else {
+            await api.delete('/servicoos/' + o.os_id).then((resp) => {
+                api.delete('/pecaos/' + o.os_id).then((resp2) => {
+                    for (let i = 0; i < serOS.length; i++) {
+                        api.post('/servicoos', {
+                            os_id: o.os_id,
+                            ser_id: serOS[i].id,
+                            serOS_val: serOS[i].valor
+                        }).then((resp3) => { });
+                    }
+                    for (let i = 0; i < pecOS.length; i++) {
+                        api.post('/pecaos', {
+                            os_id: o.os_id,
+                            pec_id: pecOS[i].id,
+                            pecOS_valTot: pecOS[i].valor,
+                            pecOS_qtde: pecOS[i].qtde
+                        }).then((resp4) => {console.log(JSON.stringify(resp4.data))});
+                    }
+                    api.put('/ordemservico/editar', {
+                        os_id: o.os_id,
+                        ve_id: (veId == "" || veId == undefined) ? null : veId,
+                        os_vekm: (km == "" || km == undefined) ? null : km,
+                        os_valTot: calcTot(),
+                        os_status: "O",
+                        os_observacoes: "",
+                        cli_id: cliId
+                    }).then((r) => {
+                        if (r.data.status) {
+                            limparCampos();
+                            carregarOS();
+                            setModal(false);
+                            console.log("modal "+modal);
+                            setTituloToast("Edição")
+                            setMsgToast("Orçamento editado com sucesso");
+                            setClasseToast('Success');
+                            setToast(true);
+                        }
+                    })
+                })
+            })
+
+        }
+    }
+
     async function gravarOS(e) {
         e.preventDefault();
-        if (cliId != undefined && cliId != "" && veId != undefined && veId != "" && km != undefined && km != "") {
+        if (orcamento)
+            gravarOrcamento();
+        else if (cliId != undefined && cliId != "" && veId != undefined && veId != "" && km != undefined && km != "") {
+            console.log("km: " + km)
             if (add)
                 if (errors.cliId == undefined && errors.veId == undefined && errors.km == undefined) {
                     const resp = await api.post('/ordemservico', {
@@ -236,6 +370,10 @@ function OS() {
                         limparCampos();
                         alerta('mensagemForm mensagemForm-Sucesso', 'Ordem de Serviço Aberta!');
                         carregarOS();
+                        setTituloToast("Cadastro")
+                        setMsgToast("Ordem de serviço aberta!");
+                        setClasseToast('Success');
+                        setToast(true);
 
                     });
                 }
@@ -264,12 +402,19 @@ function OS() {
                             os_id: o.os_id,
                             ve_id: veId,
                             os_vekm: km,
-                            os_valTot: calcTot()
+                            os_valTot: calcTot(),
+                            os_status: o.os_status == "O" ? "A" : o.os_status,
+                            os_observacoes: o.os_observacoes,
+                            cli_id: cliId
                         }).then((r) => {
                             if (r.data.status) {
-                                alerta('mensagemForm mensagemForm-Sucesso', 'Ordem de Serviço Editada!');
                                 limparCampos();
                                 carregarOS();
+                                setModal(false);
+                                setTituloToast("Edição")
+                                setMsgToast("Ordem de Serviço Editada!");
+                                setClasseToast('Success');
+                                setToast(true);
                             }
                         })
                     })
@@ -307,6 +452,7 @@ function OS() {
         }
         else
             if (errors.metodoReceb == undefined && (errors.parcelas == undefined || metodoReceb != "CC")) {
+                console.log("aqui")
                 const resp = await api.put('/ordemservico', {
                     os_id: o.os_id,
                     os_dataAbertura: o.os_dataAbertura.split('T')[0],
@@ -317,11 +463,10 @@ function OS() {
                     os_status: "F",
                     os_observacoes: anotacoes,
                     os_metodoReceb: metodoReceb,
-                    os_qtdeParcelas: parcelas,
+                    os_qtdeParcelas: parcelas != "" ? parcelas : 1,
                     os_valFiado: valFiado,
                     os_dataReceb: dtReceb
                 })
-                console.log("resp" + JSON.stringify(resp.data.status))
                 if (resp.data.status) {
                     if (valFiado > 0) {
                         const resp2 = await api.post('/contareceber', {
@@ -329,7 +474,6 @@ function OS() {
                             cr_dtVenc: dtReceb,
                             cr_valor: valFiado
                         })
-                        console.log("resp2: " + JSON.stringify(resp2))
                     }
                     await alerta('mensagemForm mensagemForm-Sucesso', 'Ordem de Serviço fechada!');
                     setModalFechar(false)
@@ -344,10 +488,16 @@ function OS() {
 
     async function editarOS(os_id, i) {
         let ordemservico = os.filter(o => o.os_id == os_id)[0]
+        setFlagCliente(false);
+        //um orçamento pode se tornar uma os, mas uma os não pode se tornar um orçamento
+        limparCampos();
         setO(ordemservico)
         carregarDadosOS(i)
         setAdd(false)
         setModal(true)
+        if (ordemservico.os_status == 'O') {
+            setOrcamento(true);
+        }
     }
     async function carregarDadosOS(i) {
         setCliId(os[i].cli_id)
@@ -366,7 +516,6 @@ function OS() {
 
         let data = []
         api.get('/servicoos/' + os[i].os_id).then((resp) => {
-            console.log("resp: " + JSON.stringify(resp.data))
             for (var k = 0; k < resp.data.length; k++) {
                 data.push({
                     id: resp.data[k].ser_id,
@@ -378,8 +527,7 @@ function OS() {
         })
         let dataPeca = []
         await api.get('/pecaos/' + os[i].os_id).then((respPeca) => {
-            console.log("resp2: " + JSON.stringify(respPeca.data))
-            console.log(respPeca.data.length)
+            console.log("retorno : "+JSON.stringify(respPeca.data))
             for (var k = 0; k < respPeca.data.length; k++) {
                 dataPeca.push({
                     id: respPeca.data[k].pec_id,
@@ -388,8 +536,50 @@ function OS() {
                     valor: respPeca.data[k].pecOS_valTot,
                 })
             }
+            console.log("dataPeca:\n"+JSON.stringify(dataPeca))
             setPecOS(dataPeca)
         })
+    }
+    async function relatorio(os) {
+        const serv = await api.get('/servicoos/' + os.os_id);
+        const pec = await api.get('/pecaos/' + os.os_id);
+        if(os.os_status=="O"){
+            EmitirOrcamento(os, serv.data,pec.data);
+        }
+        else
+            EmitirOS(os, serv.data, pec.data);
+    }
+
+    async function historicoPagamento(os_id) {
+        let ordemservico = os.filter(o => o.os_id == os_id)[0]
+        const crs = await api.get('/contareceber/' + os_id);
+        HistoricoPagamentoOS(ordemservico, crs.data)
+    }
+
+    const cadCliente = async (e) => {
+        e.preventDefault();
+        if (nomeCliente != undefined && nomeCliente != "" && foneCliente != undefined && foneCliente != "") {
+            const resp = await api.post('/clientes/cadastrar', {
+                cpf: null, nome: nomeCliente, email: null,
+                cep: null, endereco: null,
+                tel: foneCliente, num: null,
+                cidade: null
+            });
+            setTituloToast("Cadastro");
+            if (resp.data.status) {
+                setIdNovoCliente(resp.data.lastId);
+                setMsgToast("Cliente cadastrado com sucesso");
+                setClasseToast('Success');
+                setToast(true);
+                setGravouCliente(true);
+            }
+            else {
+                setMsgToast("Erro ao tentar cadastrar cliente");
+                setClasseToast('Danger');
+                setToast(true);
+            }
+        }
+        carregarClis();
     }
 
     return (
@@ -401,7 +591,7 @@ function OS() {
                         <h2 className="h2-titulo-secao">Ordem de Serviço <RiListSettingsLine style={{ color: '#231f20' }} /></h2>
                         <div className="line"></div>
 
-                        <BtAdicionar onClick={() => { limparCampos(); setModal(true) }} />
+                        <BtAdicionar onClick={() => { limparCampos(); setAdd(true); setGravouCliente(false); setOrcamento(false); setFlagCliente(false); setModal(true); }} />
                         <AreaSearch placeholder="Digite aqui...">
                             <div className="col-md-3">
                                 <select id="filtro" className="form-select" value={filtro} onChange={e => { setFiltro(e.target.value) }}>
@@ -417,6 +607,7 @@ function OS() {
                             <thead>
                                 <tr>
                                     <th scope="col">#</th>
+                                    <th scope="col">Tipo</th>
                                     <th scope="col">Data da Abertura</th>
                                     <th scope="col">Cliente</th>
                                     <th scope="col">Marca Veículo</th>
@@ -431,25 +622,40 @@ function OS() {
                                     <tr key={i}>
 
                                         <th scope="row">{o.os_id}</th>
+                                        <td>{o.os_status == "O" ? "Orçamento" : "Ordem de Serviço"}</td>
                                         <td>{formatarData(o.os_dataAbertura.split('T')[0])}</td>
                                         <td>{o.cli_nome}</td>
-                                        <td>{o.mc_nome}</td>
-                                        <td>{o.ve_placa}</td>
-                                        <td>{o.os_vekm}</td>
+                                        <td>{o.mc_nome != null ? o.mc_nome : ""}</td>
+                                        <td>{o.ve_placa != null ? o.ve_placa : ""}</td>
+                                        <td>{o.os_vekm != null ? o.os_vekm : ""}</td>
                                         <td>
-                                            {o.os_status != "F" &&
-                                                <>
-                                                    <Button
-                                                        className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                        <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { setModalFechar(true); carregarFechamentoOS(o.os_id); }} />
-                                                    </Button>
-                                                    <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => {editarOS(o.os_id, i) }}>
-                                                        <FiEdit style={{ color: '#231f20' }} />
-                                                    </Button></>}
-                                            <Button onClick={() => { setO(o); setModalExcluir(true); }}
+                                            <Button data-toggle="tooltip" data-placement="bottom" title="Emitir pdf"
                                                 className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiTrash style={{ color: '#231f20' }} />
+                                                <FiDownload style={{ color: '#231f20' }} onClick={() => { relatorio(o) }} />
                                             </Button>
+                                            {(o.os_status == "A") &&
+
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Fechar OS"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                    <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { setModalFechar(true); carregarFechamentoOS(o.os_id); }} />
+                                                </Button>
+                                            }
+                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { editarOS(o.os_id, i); setPrimeiroClique(true) }}>
+                                                <FiEdit className='btEditar' />
+                                            </Button>
+                                            {o.os_status == "F" &&
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Histórico de Pagamento"
+                                                    onClick={() => { historicoPagamento(o.os_id) }} className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                    <MdTimeline style={{ color: '#231f20' }} />
+                                                </Button>
+                                            }
+
+                                            {o.os_status == "O" &&
+                                                <Button onClick={() => { setO(o); setModalExcluir(true); }}
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                    <FiTrash className='btExcluir' />
+                                                </Button>
+                                            }
 
                                         </td>
                                     </tr>
@@ -461,30 +667,71 @@ function OS() {
             </div>
             <>
                 <Modal size="lg" className="col-md-12" show={modal} onHide={() => { setModal(false) }}>
-                    <Modal.Header className='modal-title' closeButton style={{ letterSpacing: '0.05em' }}>Ordem de Serviço <RiListSettingsLine style={{ color: '#231f20' }} /></Modal.Header>
+                    <Modal.Header className='' closeButton>
+                        <span style={{ letterSpacing: '0.05em' }} className='modal-title'>{orcamento ? "Orçamento" : "Ordem de Serviço"}<RiListSettingsLine style={{ color: '#231f20' }} /></span>
+                    </Modal.Header>
                     <Modal.Body>
+                        <div className='col-md-12 pb-2'>
+                            <div style={{ position: 'absolute', right: '2rem' }}>
+                                <label className="form-check-label" for="flexSwitchCheckDefault">Orçamento&nbsp;</label>
+                                <input className="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" checked={orcamento} onChange={(e) => { setOrcamento(e.target.checked) }} />
+                            </div>
+                        </div>
+                        {
+                            (orcamento && add) &&
+                            <>
+                                <p className="col-md-12"></p>
+                                <div className="col-md-12 pb-2">
+                                    <div style={{ position: 'absolute', right: '2rem' }}>
+                                        <label className="form-check-label" for="flexSwitchCheckDefault">Cadastrar Cliente&nbsp;</label>
+                                        <input className="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" checked={flagCliente} onChange={(e) => { setFlagCliente(e.target.checked) }} />
+                                    </div>
+                                </div>
+                            </>
+                        }
                         <Form>
-                            <Select cols="col-md-12" id="cliId" label="Cliente *" register={register} value={cliId}
-                                onChange={e => { setValue("cliId", e.target.value); setCliId(e.target.value); errors.cliId && trigger('cliId'); }}
-                                erro={errors.cliId}>
-                                {clis.map((cli, i) => (
-                                    <option key={i} value={cli.cli_id}>{cli.cli_nome}</option>
-                                ))}
-                            </Select>
-                            <Select cols="col-md-6" id="veId" label="Veículos *" register={register} value={veId}
-                                onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); errors.veId && trigger('veId'); }}
-                                erro={errors.veId}>
-                                {
-                                    veiculos.map((ve, i) => (
-                                        <option key={i} value={ve.ve_id}>{ve.ve_placa}</option>
-                                    ))}
-                            </Select>
-                            <Form.Input type="number" min="0" cols="col-md-6" id="km" name="km" placeholder="80.000 km" label="Kilometragem *" register={register}
-                                value={km} onChange={e => { setValue("km", e.target.value); setKm(e.target.value); errors.km && trigger('km'); }} erro={errors.km} />
+                            {flagCliente ?
+                                <div className="container">
+                                    <div className='mb-2' style={{ fontWeight: 500 }}>Cliente</div>
+                                    <div className="row secaoItensEstatico g-2" >
+                                        <Form.Input type="text" cols="col-md-6" id="nomeCliente" name="nomeCliente" placeholder="Ex: José Silva" label="Nome *" register={register}
+                                            value={nomeCliente} onChange={e => { setNomeCliente(e.target.value); setValue("nomeCliente", e.target.value); errors.nomeCliente && trigger('nomeCliente'); }} erro={errors.nomeCliente}
+                                            leitura={gravouCliente} />
+                                        <Form.Input type="text" cols="col-md-4" id="foneCliente" name="foneCliente" placeholder="181111-1111" label="Celular *" register={register}
+                                            value={foneCliente} onChange={e => { setFoneCliente(e.target.value); setValue("foneCliente", e.target.value); errors.foneCliente && trigger('foneCliente'); }} erro={errors.foneCliente}
+                                            leitura={gravouCliente} />
+                                        <div className="col-md-2" style={{ display: 'flex', alignItems: (errors.nomeCliente == errors.foneCliente) ? 'end' : 'center' }}>
+                                            <button type="button" style={{ fontSize: '0.8em', fontWeight: 'bold' }} className={(nomeCliente != "" && errors.nomeCliente == errors.foneCliente && foneCliente != "" && !gravouCliente) ? 'btn btn-dark m-0' : 'btn btn-dark m-0 disabled'} onClick={cadCliente}>
+                                                OK
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                :
+                                <>
+                                    <Select cols="col-md-12" id="cliId" label="Cliente *" register={register} value={cliId}
+                                        onChange={e => { setValue("cliId", e.target.value); setCliId(e.target.value); errors.cliId && trigger('cliId'); }}
+                                        erro={errors.cliId}>
+                                        {clis.map((cli, i) => (
+                                            <option key={i} value={cli.cli_id}>{cli.cli_nome}</option>
+                                        ))}
+                                    </Select>
 
+                                    <Select cols="col-md-6" id="veId" label="Veículos *" register={register} value={veId}
+                                        onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); console.log("veId: "+veId); errors.veId && trigger('veId'); }}
+                                        erro={errors.veId}>
+                                        {
+                                            veiculos.map((ve, i) => (
+                                                <option key={i} value={ve.ve_id}>{ve.ve_placa}</option>
+                                            ))}
+                                    </Select>
+                                    <Form.Input type="number" min="0" cols="col-md-6" id="km" name="km" placeholder="80.000 km" label="Kilometragem *" register={register}
+                                        value={km} onChange={e => { setValue("km", e.target.value); setKm(e.target.value); errors.km && trigger('km'); }} erro={errors.km} />
+                                </>
+                            }
                             <div className="container">
-                                <div id="title">Serviços</div>
-                                <div className="row secaoItens">
+                                <div className='mb-1' style={{ fontWeight: 500 }}>Serviços</div>
+                                <div className="row secaoItens g-1">
 
                                     <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarServico() }}>
                                         <BsPlusLg size={14} style={{ color: '#000' }} />
@@ -524,8 +771,8 @@ function OS() {
                                 </div>
                             </div>
                             <div className="container">
-                                <div id="title">Peças</div>
-                                <div className="row secaoItens">
+                                <div className='mb-1' style={{ fontWeight: 500 }}>Peças</div>
+                                <div className="row secaoItens g-1">
 
                                     <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarPeca() }}>
                                         <BsPlusLg size={14} style={{ color: '#000' }} />
@@ -597,7 +844,7 @@ function OS() {
                             </div>
                             <div className="container">
                                 <div className='mb-2'>Proprietário</div>
-                                <div className="row secaoItensFecharOS g-2" >
+                                <div className="row secaoItensEstatico g-2" >
                                     <Form.InputRO disabled type="text" cols="col-md-12" id="cliente" name="cliente"
                                         label="Cliente" value={cliente} />
                                     <Form.InputRO disabled type="text" cols="col-md-7" id="veiculo" name="veiculo"
@@ -627,7 +874,7 @@ function OS() {
                                     }} erro={errors.parcelas} />
                             }
                             <div className="container">
-                                <div className="row secaoItensFecharOS g-2" >
+                                <div className="row secaoItensEstatico g-2" >
                                     <Form.InputRO type="number" min="0" cols="col-md-6" id="valFiado" name="valFiado"
                                         label="Valor Fiado (R$)" value={valFiado} onChange={e => { setValFiado(e.target.value) }} />
                                     <Form.InputRO type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6" id="dataReceb" name="dataReceb"
@@ -650,11 +897,14 @@ function OS() {
                     </Modal.Footer>
                 </Modal>
             </>
-            {o!=null &&
-            <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
-                item="Ordem de Serviço" valor={o.os_id} classesMsg={classes} msg={msgForm}
-                onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirOS() }} />
+            {
+                o != null &&
+                <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
+                    item="Orçamento" valor={o.os_id} classesMsg={classes} msg={msgForm}
+                    onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirOS() }} />
             }
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </>
     )
 }

@@ -5,7 +5,6 @@ const db = require('../models/Database')
 
 module.exports = {
     async listar (request, response){
-        console.log("listar cliente")
         const con = await db.conecta();
         const sql = "SELECT * FROM cliente ORDER BY cli_nome";
         const cli = await db.consulta(sql);

@@ -186,11 +186,11 @@ function Peca() {
                                             <td>{(p.pec_preco).toFixed(2)}</td>
                                             <td >
                                                 <Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiEdit style={{ color: '#231f20' }} onClick={() => { clearErrors(); limparCampos(); editarPeca(p.pec_id, i) }} />
+                                                    <FiEdit className='btEditar' onClick={() => { clearErrors(); limparCampos(); editarPeca(p.pec_id, i) }} />
                                                 </Button>
                                                 <Button
                                                     className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash style={{ color: '#231f20' }} onClick={() => { setId(p.pec_id); setPecaTemp(p.pec_nome); setModalExcluir(true); }} />
+                                                    <FiTrash className='btExcluir' onClick={() => { setId(p.pec_id); setPecaTemp(p.pec_nome); setModalExcluir(true); }} />
                                                 </Button>
                                             </td>
                                         </tr>

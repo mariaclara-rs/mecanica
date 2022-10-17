@@ -3,14 +3,14 @@ import api from '../../services/api';
 import '../../style.css'
 import emailjs from '@emailjs/browser';
 
-import { Button, Modal } from 'react-bootstrap';
+import { Button, Modal, ToastHeader } from 'react-bootstrap';
 import ModalExcluir from '../../components/ModalExcluir';
 import Sidebar from '../../components/Sidebar';
 import AreaSearch from '../../components/AreaSearch';
 import BtAdicionar from '../../components/BtAdicionar';
 import Form from '../../components/Form';
 import Select, { SelectReadOnly } from '../../components/Select';
-
+import ToastMessage from '../../components/ToastMessage';
 
 import { set, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -25,12 +25,16 @@ import { VscSettingsGear } from 'react-icons/vsc'
 import { BsEnvelope } from 'react-icons/bs'
 
 
+
 function Agendamentos() {
 
     const [modal, setModal] = useState(false);
     const [modalOS, setModalOS] = useState(false);
     const [modalMsg, setModalMsg] = useState(false);
     const [modalExcluir, setModalExcluir] = useState();
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
 
     const [data, setData] = useState();
     const [horario, setHorario] = useState();
@@ -53,9 +57,7 @@ function Agendamentos() {
 
     const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas } = useContext(DadosContext)
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, formatarHorarioParaUsuario } = useContext(UtilsContext)
-
-
-
+    
     const schema = yup.object({
         data: yup.date().required("Campo obrigatório"),
         horario: yup.string().required("Campo obrigatório"),
@@ -69,12 +71,11 @@ function Agendamentos() {
     const form = useRef();
     const sendEmail = (e) => {
         e.preventDefault();
-        console.log("sendEmail")
         emailjs.sendForm('service_zszoaqd', 'template_g0rldem', form.current, 'LuU_9qGcKTx1oeeTY')
             .then((result) => {
-                alerta('mensagemForm mensagemForm-Sucesso', 'Email enviado!').then((resp)=>{setModalMsg(false)});
+                alerta('mensagemForm mensagemForm-Sucesso', 'Email enviado!').then((resp) => { setModalMsg(false) });
             }, (error) => {
-            console.log("erro: "+error.text);
+                console.log("erro: " + error.text);
             });
     };
 
@@ -171,10 +172,10 @@ function Agendamentos() {
     async function recuperarEmail(ag) {
         setNome(ag.cli_nome)
         setEmail(ag.cli_email)
-        setMensagem("Olá, "+ag.cli_nome+"!\n\n"+
-        "Você possui um agendamento na Oficina Mecânica Valter\nData: "+
-        ""+formatarDataParaUsuario(ag.data.split('T')[0])+" às "+formatarHorarioParaUsuario(ag.horario)+"h"+
-        "\n\nAté lá 👋")
+        setMensagem("Olá, " + ag.cli_nome + "!\n\n" +
+            "Você possui um agendamento na Oficina Mecânica Valter\nData: " +
+            "" + formatarDataParaUsuario(ag.data.split('T')[0]) + " às " + formatarHorarioParaUsuario(ag.horario) + "h" +
+            "\n\nAté lá 👋")
     }
 
     useEffect(() => {
@@ -191,7 +192,7 @@ function Agendamentos() {
     }
 
     async function gerarOS() {
-        console.log("veId: "+veId+" ag.ve_id: "+ag.ve_id)
+        console.log("veId: " + veId + " ag.ve_id: " + ag.ve_id)
         await api.post('/ordemservico', {
             dataAbertura: (new Date()).toISOString().split('T')[0],
             ve_id: ag.ve_id,
@@ -219,14 +220,20 @@ function Agendamentos() {
         setVeiculos(resp.data.data)
     }
 
-    async function excluirAgendamento(){
-        const resp = await api.delete('/agenda/'+ag.ag_id)
-        if(resp.data.status){
-            alerta('mensagemForm mensagemForm-Sucesso', 'Agendamento excluído').then(() => { setModalExcluir(false); setAg(null); })
+    async function excluirAgendamento() {
+        const resp = await api.delete('/agenda/' + ag.ag_id)
+        if (resp.data.status) {
+            //alerta('mensagemForm mensagemForm-Sucesso', 'Agendamento excluído').then(() => { setModalExcluir(false); setAg(null); })
+            setMsgToast("Agendamento excluído");
+            setClasseToast('Success');
         }
-        else{
-            alerta('mensagemForm mensagemForm-Erro', 'Erro. Não foi possível excluir o agendamento no momento').then(() => { setModalExcluir(false); setAg(null) })
+        else {
+            //alerta('mensagemForm mensagemForm-Erro', 'Erro. Não foi possível excluir o agendamento no momento').then(() => { setModalExcluir(false); setAg(null) })
+            setMsgToast("Não foi possível excluir o agendamento no momento");
+            setClasseToast('Danger');
         }
+        setModalExcluir(false);
+        setToast(true);
         carregarAgendamentos();
     }
     return (
@@ -267,12 +274,12 @@ function Agendamentos() {
                                                 <BsEnvelope style={{ color: '#231f20' }} />
                                             </Button>
                                             <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { clearErrors(); setAdd(false); setAg(ag); carregarCampos(ag); setModal(true); }}>
-                                                <FiEdit style={{ color: '#231f20' }} />
+                                                <FiEdit className='btEditar' />
                                             </Button>
 
                                             <Button
-                                                className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiTrash style={{ color: '#231f20' }} onClick={() => {setAg(ag); setModalExcluir(true);}} />
+                                                className='m-0 p-0 px-1 border-0 bg-transparent' >
+                                                <FiTrash className='btExcluir' onClick={() => { setAg(ag); setModalExcluir(true); }} />
                                             </Button>
 
                                         </td>
@@ -363,7 +370,7 @@ function Agendamentos() {
                                 <button type="submit" style={{ float: 'right' }} className='col-md-2 btn btn-dark'>Enviar</button>
                             </div>
                         </form>
-                        
+
                     </Modal.Body>
                 </Modal>
             </>
@@ -387,11 +394,15 @@ function Agendamentos() {
                     </Modal.Footer>
                 </Modal>
             </>
-            {ag!=null &&
-            <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
-                item="Agendamento" valor={ag.ag_id} classesMsg={classes} msg={msgForm}
-                onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirAgendamento() }} />
+            {ag != null &&
+                <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
+                    item="Agendamento" valor={ag.ag_id} classesMsg={classes} msg={msgForm}
+                    onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirAgendamento() }} />
             }
+            <>
+                <ToastMessage show={toast} titulo="Exclusão de Agendamento" onClose={()=>setToast(false)} 
+                classes={classeToast} msg={msgToast}/>
+            </>
         </>
     )
 }

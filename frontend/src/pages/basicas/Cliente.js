@@ -261,11 +261,11 @@ function Cliente() {
                     <td>{c.cli_endereco}</td>
                     <td >
                       <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { limparCampos(); clearErrors(); editarCliente(c.cli_id, i) }}>
-                        <FiEdit style={{ color: '#231f20' }} />
+                        <FiEdit className='btEditar' />
                       </Button>
                       <Button
                         className='m-0 p-0 px-1 border-0 bg-transparent'>
-                        <FiTrash style={{ color: '#231f20' }} onClick={() => { setId(c.cli_id); setNomeTemp(c.cli_nome); setModalExcluir(true) }} />
+                        <FiTrash className='btExcluir' onClick={() => { setId(c.cli_id); setNomeTemp(c.cli_nome); setModalExcluir(true) }} />
                       </Button>
                     </td>
                   </tr>

@@ -177,11 +177,11 @@ function Marca() {
                                             <td>{m.mc_nome}</td>
                                             <td >
                                                 <Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiEdit style={{ color: '#231f20' }} onClick={() => { clearErrors(); limparCampos(); editarMarca(m.mc_id, i) }} />
+                                                    <FiEdit className='btEditar' onClick={() => { clearErrors(); limparCampos(); editarMarca(m.mc_id, i) }} />
                                                 </Button>
                                                 <Button
                                                     className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash style={{ color: '#231f20' }} onClick={() => { setId(m.mc_id); setMarcaTemp(m.mc_nome); setModalExcluir(true); }} />
+                                                    <FiTrash className='btExcluir' onClick={() => { setId(m.mc_id); setMarcaTemp(m.mc_nome); setModalExcluir(true); }} />
                                                 </Button>
                                             </td>
                                         </tr>

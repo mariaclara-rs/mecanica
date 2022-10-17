@@ -128,5 +128,9 @@ ul ul a {
     opacity: 1;
     margin: 5px auto;
 }
-
+.alinharIconPainel{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 

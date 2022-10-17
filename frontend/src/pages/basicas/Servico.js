@@ -189,11 +189,11 @@ function Servico() {
                                         <td>{(serv.ser_descricao)}</td>{/*length > 20 ? (serv.ser_descricao).substr(0, 20) + "..." : serv.ser_descricao*/}
                                         <td >
                                             <Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiEdit style={{ color: '#231f20' }} onClick={() => { clearErrors(); limparCampos(); editarServico(serv.ser_id, i) }} />
+                                                <FiEdit className='btEditar' onClick={() => { clearErrors(); limparCampos(); editarServico(serv.ser_id, i) }} />
                                             </Button>
                                             <Button
                                                 className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiTrash style={{ color: '#231f20' }} onClick={() => {setId(serv.ser_id); setServTemp(serv.ser_nome); setModalExcluir(true); }} />
+                                                <FiTrash className='btExcluir' onClick={() => {setId(serv.ser_id); setServTemp(serv.ser_nome); setModalExcluir(true); }} />
                                             </Button>
                                         </td>
                                     </tr>

@@ -264,11 +264,11 @@ function Veiculo() {
                                         <td>{v.ve_cor}</td>
                                         <td>{v.cli_nome}</td>
                                         <td >
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { limparForm(); clearErrors(); editarVeiculo(v.ve_id, i) }}>
-                                                <FiEdit style={{ color: '#231f20' }} />
+                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent ' onClick={() => { limparForm(); clearErrors(); editarVeiculo(v.ve_id, i) }}>
+                                                <FiEdit className='btEditar' />
                                             </Button>
                                             <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { setId(v.ve_id); setPlacaTemp(v.ve_placa); setModalExcluir(true); }} >
-                                                <FiTrash style={{ color: '#231f20' }} />
+                                                <FiTrash className='btExcluir'/>
                                             </Button>
                                         </td>
                                     </tr>

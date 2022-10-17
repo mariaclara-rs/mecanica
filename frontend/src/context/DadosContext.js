@@ -10,7 +10,12 @@ export default function DadosProvider({ children }) {
     const [veiculos, setVeiculos] = useState([]);
     const [servicos, setServicos] = useState([]);
     const [pecas, setPecas] = useState([]);
+    const [tpDespesa, setTpDespesa] = useState([]);
 
+    async function carregarTpDespesa(){
+      const resp = await api.get('/tpdespesa');
+      setTpDespesa(resp.data)
+    }
     async function carregarClis(){
         const resp = await api.get('/clientes')
         setClis(resp.data)
@@ -40,7 +45,7 @@ export default function DadosProvider({ children }) {
         <DadosContext.Provider
           value={{
             clis, carregarClis, dists, carregarDists, veiculos, carregarVeiculos,
-            servicos, carregarServicos, pecas, carregarPecas
+            servicos, carregarServicos, pecas, carregarPecas, tpDespesa, carregarTpDespesa
           }}>
           {children}
         </DadosContext.Provider>
