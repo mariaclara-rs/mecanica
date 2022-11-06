@@ -1,6 +1,7 @@
 import React, { createContext, useState } from 'react'
 import ToastMessage from '../components/ToastMessage';
 
+
 export const UtilsContext = createContext();
 
 export function UtilsProvider({ children }) {
@@ -8,6 +9,12 @@ export function UtilsProvider({ children }) {
     const [msgForm, setMsgForm] = useState('');
     const [classes, setClasses] = useState('');
     const [atual, setAtual] = useState();
+
+
+    const EnumTipoDespesa = {
+        fixa: 1,
+        variavel: 2
+    }
 
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -21,7 +28,6 @@ export function UtilsProvider({ children }) {
     }
 
     function formatarDataParaUsuario(data) {
-        console.log("data: "+data);
         data = data.split('-')
         return data[2] + '/' + data[1] + '/' + data[0]
     }
@@ -34,10 +40,18 @@ export function UtilsProvider({ children }) {
     function setLinkAtual(nome) {
         setAtual(nome)
     }
+
+    function logout(){
+        
+        localStorage.setItem('token','');
+        window.location.reload();
+
+    }
     return (
         <UtilsContext.Provider
             value={{
-                sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, formatarHorarioParaUsuario, atual, setLinkAtual
+                sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, formatarHorarioParaUsuario, atual, setLinkAtual,
+                EnumTipoDespesa, logout
             }}>
             {children}
         </UtilsContext.Provider>

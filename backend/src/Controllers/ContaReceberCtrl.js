@@ -7,7 +7,8 @@ module.exports = {
         +"cr.cr_dtReceb, cr.cr_metodoReceb, cr.cr_valor, cr.cr_valorReceb, v.ve_id,"
         +"ve_placa, c.cli_id, cli_nome, cli_tel "
         +"from contareceber cr, ordemservico o, veiculo v, cliente c "
-        +"where cr.os_id = o.os_id and o.ve_id = v.ve_id and v.cli_id = c.cli_id";
+        +"where cr.os_id = o.os_id and o.ve_id = v.ve_id and v.cli_id = c.cli_id "
+        +"order by 5";
         const cr = await db.consulta(sql);
         return response.json(cr.data);
     },

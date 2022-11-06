@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 
-import {UtilsContext} from '../../context/UtilsContext'
+import { UtilsContext } from '../../context/UtilsContext'
 
 import api from '../../services/api';
 
@@ -9,13 +9,16 @@ import Form from '../../components/Form'
 import Search from '../../components/Search'
 import { Button, Modal } from 'react-bootstrap';
 import ModalExcluir from '../../components/ModalExcluir';
+import BtSair from '../../components/BtSair';
 
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
 import { FiTrash, FiEdit } from 'react-icons/fi';
-import {BiBriefcaseAlt2} from "react-icons/bi" 
+import { BiBriefcaseAlt2 } from "react-icons/bi"
+
+import ToastMessage from '../../components/ToastMessage';
 
 function Servico() {
 
@@ -33,8 +36,13 @@ function Servico() {
 
     const [campoBusca, setCampoBusca] = useState('');
 
-    const {sleep,alerta,msgForm,setMsgForm,classes,setClasses} = useContext(UtilsContext)
-    
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
+
     const schema = yup.object({
         nome: yup.string().required("Informe o nome do serviço"),
         maoObra: yup.string().required("Informe a mão de obra")
@@ -96,10 +104,20 @@ function Servico() {
     async function excluirServico() {
         const resp = await api.delete('/servicos/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir serviço').then(() => { setModalExcluir(false); setServTemp('') })
+            setTituloToast("Exclusão")
+            setMsgToast("Erro. Não foi possível excluir o serviço");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setServTemp('');
         }
         else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Serviço excluído').then(() => { setModalExcluir(false); setServTemp(''); })
+            setTituloToast("Exclusão")
+            setMsgToast("Serviço excluído");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setServTemp('');
 
         }
         carregarServicos();
@@ -134,25 +152,26 @@ function Servico() {
         let resp;
         let params;
         if (campoBusca != '') {
-          params = {
-            nome: campoBusca
-          };
-          resp = await api.get('/servicos/nome', {
-            params
-          })
-          setServs(resp.data.data);
+            params = {
+                nome: campoBusca
+            };
+            resp = await api.get('/servicos/nome', {
+                params
+            })
+            setServs(resp.data.data);
         }
         else {
-          carregarServicos();
+            carregarServicos();
         }
-      }
+    }
     return (
         <React.Fragment>
             <div className="wrapper">
                 <Sidebar />
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
-                        <h2 className="h2-titulo-secao">Serviços <BiBriefcaseAlt2 size={25} style={{margin: '0.3rem'}}/></h2>
+                        <h2 className="h2-titulo-secao">Serviços <BiBriefcaseAlt2 size={25} style={{ margin: '0.3rem' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
 
                         {/*botão modal*/}
@@ -164,8 +183,8 @@ function Servico() {
                         <div className="row mt-5 mb-3">
                             <div className="col-md-5">
                                 <Search>
-                                    <Search.Input placeholder="Busque por um serviço..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarServico(); }}/>
-                                    <Search.Span onClick={() => { buscarServico() }}/>
+                                    <Search.Input placeholder="Busque por um serviço..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarServico(); }} />
+                                    <Search.Span onClick={() => { buscarServico() }} />
                                 </Search>
                             </div>
                         </div>
@@ -193,7 +212,7 @@ function Servico() {
                                             </Button>
                                             <Button
                                                 className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiTrash className='btExcluir' onClick={() => {setId(serv.ser_id); setServTemp(serv.ser_nome); setModalExcluir(true); }} />
+                                                <FiTrash className='btExcluir' onClick={() => { setId(serv.ser_id); setServTemp(serv.ser_nome); setModalExcluir(true); }} />
                                             </Button>
                                         </td>
                                     </tr>
@@ -244,7 +263,8 @@ function Servico() {
             <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
                 item="serviço" valor={servTemp} classesMsg={classes} msg={msgForm}
                 onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirServico() }} />
-
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </React.Fragment>
     )
 }

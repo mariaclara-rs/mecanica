@@ -15,6 +15,7 @@ import DadosProvider from './context/DadosContext';
 import Agendamentos from './pages/fundamentais/Agendamentos';
 import ContaPagar from './pages/fundamentais/ContaPagar';
 
+
 function PrivateRoute() {
 
     let auth = localStorage.getItem("token")

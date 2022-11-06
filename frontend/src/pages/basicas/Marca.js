@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 
-import {UtilsContext} from '../../context/UtilsContext'
+import { UtilsContext } from '../../context/UtilsContext'
 
 import api from '../../services/api';
 
@@ -14,9 +14,13 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
-import {BiGlobe} from "react-icons/bi" 
+import { BiGlobe } from "react-icons/bi"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FiTrash, FiEdit } from 'react-icons/fi';
+
+import BtSair from '../../components/BtSair';
+
+import ToastMessage from '../../components/ToastMessage';
 
 function Marca() {
 
@@ -32,7 +36,12 @@ function Marca() {
     const [modalExcluir, setModalExcluir] = useState(false);
     const [campoBusca, setCampoBusca] = useState('');
 
-    const {sleep,alerta,msgForm,setMsgForm,classes,setClasses} = useContext(UtilsContext)
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
         nome: yup.string().required("Informe a marca"),
@@ -94,11 +103,20 @@ function Marca() {
     async function excluirMarca() {
         const resp = await api.delete('/marcas/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir marca').then(() => { setModalExcluir(false); setMarcaTemp('') })
+            setTituloToast("Exclusão")
+            setMsgToast("Erro. Não foi possível excluir a marca");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setMarcaTemp('');
         }
         else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Marca excluída').then(() => { setModalExcluir(false); setMarcaTemp(''); })
-
+            setTituloToast("Exclusão")
+            setMsgToast("Marca excluída");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setMarcaTemp('');
         }
         carregarMarcas();
     }
@@ -124,19 +142,19 @@ function Marca() {
         let resp;
         let params;
         if (campoBusca != '') {
-          params = {
-            nome: campoBusca
-          };
-          resp = await api.get('/marcas/nome', {
-            params
-          })
-          setMarcas(resp.data.data);
+            params = {
+                nome: campoBusca
+            };
+            resp = await api.get('/marcas/nome', {
+                params
+            })
+            setMarcas(resp.data.data);
         }
         else {
-          carregarMarcas();
+            carregarMarcas();
         }
-      }
-    
+    }
+
 
     return (
         <React.Fragment>
@@ -144,7 +162,8 @@ function Marca() {
                 <Sidebar />
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
-                        <h2 className="h2-titulo-secao">Marcas <BiGlobe size={22} style={{margin: '0.3rem'}}/></h2>
+                        <h2 className="h2-titulo-secao">Marcas <BiGlobe size={22} style={{ margin: '0.3rem' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
 
                         {/*botão modal*/}
@@ -157,7 +176,7 @@ function Marca() {
                             <div className="col-md-5">
                                 <Search>
                                     <Search.Input placeholder="Busque por peças..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarMarca(); }} />
-                                    <Search.Span onClick={()=>buscarMarca()}/>
+                                    <Search.Span onClick={() => buscarMarca()} />
                                 </Search>
                             </div>
                         </div>
@@ -218,6 +237,8 @@ function Marca() {
             <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
                 item="marca" valor={marcaTemp} classesMsg={classes} msg={msgForm}
                 onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirMarca() }} />
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </React.Fragment>
     )
 }

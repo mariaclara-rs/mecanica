@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 
-import {UtilsContext} from '../../context/UtilsContext'
+import { UtilsContext } from '../../context/UtilsContext'
 
 import api from '../../services/api';
 
@@ -15,10 +15,13 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
 import { FiTrash, FiEdit } from 'react-icons/fi';
-import {GrTroubleshoot} from "react-icons/gr" 
+import { GrTroubleshoot } from "react-icons/gr"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import BtSair from '../../components/BtSair';
+import CurrencyInput from '../../components/CurrencyInput';
 
+import ToastMessage from '../../components/ToastMessage';
 function Peca() {
 
     const [nome, setNome] = useState('')
@@ -35,7 +38,12 @@ function Peca() {
     const [modalExcluir, setModalExcluir] = useState(false);
     const [campoBusca, setCampoBusca] = useState('');
 
-    const {sleep,alerta,msgForm,setMsgForm,classes,setClasses} = useContext(UtilsContext)
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
         nome: yup.string().required("Informe o nome da peça"),
@@ -98,10 +106,20 @@ function Peca() {
     async function excluirPeca() {
         const resp = await api.delete('/pecas/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir peça').then(() => { setModalExcluir(false); setPecaTemp('') })
+            setTituloToast("Exclusão")
+            setMsgToast("Erro. Não foi possível excluir a peça");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setPecaTemp('');
         }
         else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Peça excluída').then(() => { setModalExcluir(false); setPecaTemp(''); })
+            setTituloToast("Exclusão")
+            setMsgToast("Peça excluída");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setPecaTemp('');
 
         }
         carregarPecas();
@@ -131,18 +149,18 @@ function Peca() {
         let resp;
         let params;
         if (campoBusca != '') {
-          params = {
-            nome: campoBusca
-          };
-          resp = await api.get('/pecas/nome', {
-            params
-          })
-          setPecas(resp.data.data);
+            params = {
+                nome: campoBusca
+            };
+            resp = await api.get('/pecas/nome', {
+                params
+            })
+            setPecas(resp.data.data);
         }
         else {
-          carregarPecas();
+            carregarPecas();
         }
-      }
+    }
 
     return (
         <React.Fragment>
@@ -150,7 +168,8 @@ function Peca() {
                 <Sidebar />
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
-                        <h2 className="h2-titulo-secao">Peças <GrTroubleshoot size={22} style={{margin: '0.3rem'}}/></h2>
+                        <h2 className="h2-titulo-secao">Peças <GrTroubleshoot size={22} style={{ margin: '0.3rem' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
 
                         {/*botão modal*/}
@@ -163,7 +182,7 @@ function Peca() {
                             <div className="col-md-5">
                                 <Search>
                                     <Search.Input placeholder="Busque por peças..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarPeca(); }} />
-                                    <Search.Span onClick={()=>buscarPeca()}/>
+                                    <Search.Span onClick={() => buscarPeca()} />
                                 </Search>
                             </div>
                         </div>
@@ -233,6 +252,9 @@ function Peca() {
             <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
                 item="peça" valor={pecaTemp} classesMsg={classes} msg={msgForm}
                 onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirPeca() }} />
+
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </React.Fragment>
     )
 }

@@ -24,7 +24,7 @@ module.exports = {
     },
     async excluirPorCP(request, response){
         const {cp_id} = request.params;
-        const sql = "DELETE FROM parcela WHERE cp_id=?";
+        const sql = "DELETE FROM parcela WHERE parc_dtPgto is null and cp_id=?";
         await db.conecta();
         const result = await db.manipula(sql,[cp_id]);
         return response.json(result);

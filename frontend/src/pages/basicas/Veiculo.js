@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 
-import {UtilsContext} from '../../context/UtilsContext'
+import { UtilsContext } from '../../context/UtilsContext'
 
 import api from '../../services/api';
 
@@ -9,6 +9,7 @@ import Sidebar from '../../components/Sidebar';
 import Form from '../../components/Form'
 import Search from '../../components/Search'
 import ModalExcluir from '../../components/ModalExcluir';
+import BtSair from '../../components/BtSair';
 
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -16,6 +17,8 @@ import * as yup from "yup";
 
 import { FiTrash, FiEdit } from 'react-icons/fi';
 import { BiCar } from "react-icons/bi";
+
+import ToastMessage from '../../components/ToastMessage';
 
 function Veiculo() {
 
@@ -39,7 +42,12 @@ function Veiculo() {
     const [modalExcluir, setModalExcluir] = useState(false);
     const [placaTemp, setPlacaTemp] = useState('');
 
-    const {sleep,alerta,msgForm,setMsgForm,classes,setClasses} = useContext(UtilsContext)
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
         cliId: yup.string().required("Selecione um cliente"),
@@ -71,7 +79,7 @@ function Veiculo() {
         const resp = await api.get('/marcas');
         setMarcas(resp.data);
     }
-   
+
     async function gravarVeiculo(e) {
         e.preventDefault();
         //console.log("cliente: " + cliId + " placa: " + placa + " marca: " + marcaId);
@@ -119,10 +127,20 @@ function Veiculo() {
     async function excluirVeiculo() {
         const resp = await api.delete('/veiculos/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir veículo').then(() => { setModalExcluir(false); setPlacaTemp('') })
+            setTituloToast("Exclusão")
+            setMsgToast("Erro. Não foi possível excluir o veículo");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setPlacaTemp('');
         }
         else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Veículo excluído').then(() => { setModalExcluir(false); setPlacaTemp(''); })
+            setTituloToast("Exclusão")
+            setMsgToast("Veículo excluído");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setPlacaTemp('');
 
         }
         carregarVeiculos();
@@ -216,6 +234,7 @@ function Veiculo() {
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
                         <h2 className="h2-titulo-secao">Veículos <BiCar size={25} style={{ margin: '0.3rem' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
 
                         {/*botão modal*/}
@@ -227,7 +246,7 @@ function Veiculo() {
                         <div className="row mt-5 mb-3">
                             <div className="col-md-5">
                                 <Search>
-                                    <Search.Input placeholder="Busque por um veículo..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarVeiculo(); }} onBlur={buscarVeiculo}/>
+                                    <Search.Input placeholder="Busque por um veículo..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarVeiculo(); }} onBlur={buscarVeiculo} />
                                     <Search.Span onClick={() => { buscarVeiculo() }} />
                                 </Search>
                             </div>
@@ -268,7 +287,7 @@ function Veiculo() {
                                                 <FiEdit className='btEditar' />
                                             </Button>
                                             <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { setId(v.ve_id); setPlacaTemp(v.ve_placa); setModalExcluir(true); }} >
-                                                <FiTrash className='btExcluir'/>
+                                                <FiTrash className='btExcluir' />
                                             </Button>
                                         </td>
                                     </tr>
@@ -348,6 +367,9 @@ function Veiculo() {
             <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
                 item="veículo" valor={placaTemp} classesMsg={classes} msg={msgForm}
                 onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirVeiculo() }} />
+
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </React.Fragment>
 
     );

@@ -9,7 +9,7 @@ import ModalExcluir from '../../components/ModalExcluir';
 import BtAdicionar from '../../components/BtAdicionar';
 import Select, { SelectReadOnly } from '../../components/Select';
 
-import { FiTrash, FiEdit, FiCheckCircle, FiDownload } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiCheckCircle, FiDownload, FiFilter } from 'react-icons/fi';
 import { BsPlusLg } from 'react-icons/bs';
 import { RiListSettingsLine, RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { MdTimeline } from 'react-icons/md';
@@ -24,6 +24,9 @@ import ToastMessage from '../../components/ToastMessage';
 import EmitirOS from '../../reports/EmitirOS';
 import HistoricoPagamentoOS from '../../reports/HistoricoPagamentoOS';
 import EmitirOrcamento from '../../reports/EmitirOrcamento';
+import BtSair from '../../components/BtSair';
+
+
 
 function OS() {
 
@@ -43,6 +46,7 @@ function OS() {
 
     const [pecId, setPecId] = useState();
     const [pecQtde, setPecQtde] = useState(1);
+    const [serQtde, setSerQtde] = useState(1);
     const [pecVal, setPecVal] = useState();
 
     const [cliente, setCliente] = useState();
@@ -53,9 +57,10 @@ function OS() {
     const [anotacoes, setAnotacoes] = useState("");
     const [o, setO] = useState(null);
     const [valFiado, setValFiado] = useState(0);
+    const [valReceb, setValReceb] = useState("");
     const [dtReceb, setDtReceb] = useState(null);
 
-    const [filtro, setFiltro] = useState("");
+    const [filtro, setFiltro] = useState("T");
     const [add, setAdd] = useState(true);
 
     const [orcamento, setOrcamento] = useState(false);
@@ -65,7 +70,7 @@ function OS() {
     const [foneCliente, setFoneCliente] = useState("");
 
     const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas } = useContext(DadosContext)
-    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses } = useContext(UtilsContext)
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const [toast, setToast] = useState(false);
     const [classeToast, setClasseToast] = useState();
@@ -75,6 +80,7 @@ function OS() {
     const [idNovoCliente, setIdNovoCliente] = useState("");
 
     const [primeiroClique, setPrimeiroClique] = useState(false);
+    const [campoBusca, setCampoBusca] = useState("");
 
     const schema = yup.object({
         cliId: yup.string().required("Selecione um cliente"),
@@ -83,7 +89,8 @@ function OS() {
         metodoReceb: yup.string().required("Selecione um Método de Recebimento"),
         parcelas: yup.string().required("Informe a quantidade de parcelas (1 para à vista)"),
         nomeCliente: yup.string().required("Informe o nome do cliente").min(3, "Nome deve ter pelo menos 3 caracteres"),
-        foneCliente: yup.string().min(8, "Informe um número válido").max(11, "Informe um número válido")
+        foneCliente: yup.string().min(8, "Informe um número válido").max(11, "Informe um número válido"),
+        valReceb: yup.string().required("Informe o valor")
     }).required();
 
     const { register, handleSubmit, trigger, setValue, clearErrors, reset, formState: { errors, isValid } } = useForm({
@@ -98,7 +105,7 @@ function OS() {
     }, []);
     useEffect(() => {
         atualizaVal();
-    }, [serId]);
+    }, [serId, serQtde]);
     useEffect(() => {
         atualizaPecVal();
     }, [pecId, pecQtde]);
@@ -122,10 +129,18 @@ function OS() {
             setFlagCliente(false);
     }, [orcamento])
 
+    useEffect(() => {
+        if (o != null)
+            setValFiado(o.os_valTot - valReceb);
+    }, [valReceb]);
+
     async function carregarOS() {
         const resp = await api.get('/ordemservico');
-        console.log("resp :" + JSON.stringify(resp.data));
-        setOs(resp.data);
+
+        if (filtro == "Cliente" && campoBusca.length > 0)
+            setOs(resp.data.filter(o => o.cli_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+        else
+            setOs(resp.data)
     }
 
     function adicionarServico() {
@@ -135,11 +150,13 @@ function OS() {
                 const data = {
                     id: serId,
                     nome: ser[0].ser_nome,
-                    valor: serVal
+                    valor: serVal,
+                    qtde: serQtde,
                 }
                 setSerOS([data, ...serOS])
                 setSerId("");
                 setSerVal("");
+                setSerQtde(1);
             }
         }
     }
@@ -166,7 +183,7 @@ function OS() {
     async function atualizaVal() {
         const ser = servicos.filter(ser => ser.ser_id == serId)
         if (ser.length > 0) {
-            setSerVal(ser[0].ser_maoObra)
+            setSerVal(ser[0].ser_maoObra * Number(serQtde))
             setValue("valor", ser[0].ser_maoObra)
         }
     }
@@ -211,7 +228,9 @@ function OS() {
         setParcelas("");
         setValFiado(0);
         setAnotacoes("");
-        setDtReceb(null)
+        setDtReceb(null);
+        setValReceb("");
+        setValue("valReceb", "");
     }
 
     function calcTot() {
@@ -265,7 +284,8 @@ function OS() {
                         api.post('/servicoos', {
                             os_id: resp.data.lastId,
                             ser_id: serOS[i].id,
-                            serOS_val: serOS[i].valor
+                            serOS_val: serOS[i].valor,
+                            serOS_qtde: serOS[i].qtde
                         }).then((resp2) => { });
                     }
                     for (let i = 0; i < pecOS.length; i++) {
@@ -299,7 +319,8 @@ function OS() {
                         api.post('/servicoos', {
                             os_id: o.os_id,
                             ser_id: serOS[i].id,
-                            serOS_val: serOS[i].valor
+                            serOS_val: serOS[i].valor,
+                            serOS_qtde: serOS[i].qtde
                         }).then((resp3) => { });
                     }
                     for (let i = 0; i < pecOS.length; i++) {
@@ -308,7 +329,7 @@ function OS() {
                             pec_id: pecOS[i].id,
                             pecOS_valTot: pecOS[i].valor,
                             pecOS_qtde: pecOS[i].qtde
-                        }).then((resp4) => {console.log(JSON.stringify(resp4.data))});
+                        }).then((resp4) => { console.log(JSON.stringify(resp4.data)) });
                     }
                     api.put('/ordemservico/editar', {
                         os_id: o.os_id,
@@ -323,7 +344,7 @@ function OS() {
                             limparCampos();
                             carregarOS();
                             setModal(false);
-                            console.log("modal "+modal);
+                            console.log("modal " + modal);
                             setTituloToast("Edição")
                             setMsgToast("Orçamento editado com sucesso");
                             setClasseToast('Success');
@@ -356,7 +377,8 @@ function OS() {
                             api.post('/servicoos', {
                                 os_id: resp.data.lastId,
                                 ser_id: serOS[i].id,
-                                serOS_val: serOS[i].valor
+                                serOS_val: serOS[i].valor,
+                                serOS_qtde: serOS[i].qtde
                             }).then((resp2) => { });
                         }
                         for (let i = 0; i < pecOS.length; i++) {
@@ -387,7 +409,8 @@ function OS() {
                             api.post('/servicoos', {
                                 os_id: o.os_id,
                                 ser_id: serOS[i].id,
-                                serOS_val: serOS[i].valor
+                                serOS_val: serOS[i].valor,
+                                serOS_qtde: serOS[i].qtde
                             }).then((resp3) => { });
                         }
                         for (let i = 0; i < pecOS.length; i++) {
@@ -452,7 +475,6 @@ function OS() {
         }
         else
             if (errors.metodoReceb == undefined && (errors.parcelas == undefined || metodoReceb != "CC")) {
-                console.log("aqui")
                 const resp = await api.put('/ordemservico', {
                     os_id: o.os_id,
                     os_dataAbertura: o.os_dataAbertura.split('T')[0],
@@ -475,8 +497,11 @@ function OS() {
                             cr_valor: valFiado
                         })
                     }
-                    await alerta('mensagemForm mensagemForm-Sucesso', 'Ordem de Serviço fechada!');
                     setModalFechar(false)
+                    setTituloToast("Ordem de Serviço");
+                    setMsgToast("Ordem de Serviço fechada com sucesso!");
+                    setClasseToast('Success');
+                    setToast(true);
                 }
                 limparCamposFOS();
                 carregarOS();
@@ -510,6 +535,7 @@ function OS() {
         setSerVal("");
         setPecId("");
         setPecQtde(0);
+        setSerQtde(0);
         setPecVal("");
         setSerOS([]);
         setPecOS([]);
@@ -520,14 +546,15 @@ function OS() {
                 data.push({
                     id: resp.data[k].ser_id,
                     nome: resp.data[k].ser_nome,
-                    valor: resp.data[k].serOS_val
+                    valor: resp.data[k].serOS_val,
+                    qtde: resp.data[k].serOS_qtde
                 })
             }
             setSerOS(data)
         })
         let dataPeca = []
         await api.get('/pecaos/' + os[i].os_id).then((respPeca) => {
-            console.log("retorno : "+JSON.stringify(respPeca.data))
+            console.log("retorno : " + JSON.stringify(respPeca.data))
             for (var k = 0; k < respPeca.data.length; k++) {
                 dataPeca.push({
                     id: respPeca.data[k].pec_id,
@@ -536,15 +563,15 @@ function OS() {
                     valor: respPeca.data[k].pecOS_valTot,
                 })
             }
-            console.log("dataPeca:\n"+JSON.stringify(dataPeca))
+            console.log("dataPeca:\n" + JSON.stringify(dataPeca))
             setPecOS(dataPeca)
         })
     }
     async function relatorio(os) {
         const serv = await api.get('/servicoos/' + os.os_id);
         const pec = await api.get('/pecaos/' + os.os_id);
-        if(os.os_status=="O"){
-            EmitirOrcamento(os, serv.data,pec.data);
+        if (os.os_status == "O") {
+            EmitirOrcamento(os, serv.data, pec.data);
         }
         else
             EmitirOS(os, serv.data, pec.data);
@@ -581,6 +608,9 @@ function OS() {
         }
         carregarClis();
     }
+    async function filtrarPCliente() {
+        await carregarOS()
+    }
 
     return (
         <>
@@ -588,19 +618,30 @@ function OS() {
                 <Sidebar />
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
+
                         <h2 className="h2-titulo-secao">Ordem de Serviço <RiListSettingsLine style={{ color: '#231f20' }} /></h2>
+                        <BtSair onClick={logout} />
+
                         <div className="line"></div>
 
                         <BtAdicionar onClick={() => { limparCampos(); setAdd(true); setGravouCliente(false); setOrcamento(false); setFlagCliente(false); setModal(true); }} />
-                        <AreaSearch placeholder="Digite aqui...">
-                            <div className="col-md-3">
-                                <select id="filtro" className="form-select" value={filtro} onChange={e => { setFiltro(e.target.value) }}>
-                                    <option selected disabled value={""}>Busque por OS</option>
-                                    <option value={"T"}>Todas</option>
-                                    <option value={"A"}>Abertas</option>
-                                    <option value={"F"}>Fechadas</option>
-                                </select>
+                        <AreaSearch placeholder="Digite aqui..." value={campoBusca} onKeyUp={filtrarPCliente} onChange={(e) => setCampoBusca(e.target.value)} onClick={filtrarPCliente}>
+                            <div className="row col-md-5">
+                                <div className="col-md-1" style={{ padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'end' }}>
+                                    <FiFilter size={20} style={{ color: '#231f20' }} />
+                                </div>
+
+                                <div className="col-md-6">
+                                    <select id="filtro" className="form-select" value={filtro} onChange={e => { setFiltro(e.target.value) }}>
+                                        <option selected value={"T"}>Filtre por</option>
+                                        <option value={"A"}>O.S. Aberta</option>
+                                        <option value={"F"}>O.S. Fechada</option>
+                                        <option value={"O"}>Orçamentos</option>
+                                        <option value={"Cliente"}>Cliente</option>
+                                    </select>
+                                </div>
                             </div>
+
                         </AreaSearch>
 
                         <table className="table table-hover" style={{ overflow: 'auto' }} >
@@ -618,7 +659,7 @@ function OS() {
                             </thead>
                             <tbody>
                                 {os.map((o, i) => (
-                                    (filtro == "T" || filtro == "" || o.os_status == filtro) &&
+                                    (filtro == "T" || filtro == "Cliente" || o.os_status == filtro) &&
                                     <tr key={i}>
 
                                         <th scope="row">{o.os_id}</th>
@@ -640,9 +681,11 @@ function OS() {
                                                     <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { setModalFechar(true); carregarFechamentoOS(o.os_id); }} />
                                                 </Button>
                                             }
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { editarOS(o.os_id, i); setPrimeiroClique(true) }}>
-                                                <FiEdit className='btEditar' />
-                                            </Button>
+                                            {(o.os_status != "F") &&
+                                                <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { editarOS(o.os_id, i); setPrimeiroClique(true) }}>
+                                                    <FiEdit className='btEditar' />
+                                                </Button>
+                                            }
                                             {o.os_status == "F" &&
                                                 <Button data-toggle="tooltip" data-placement="bottom" title="Histórico de Pagamento"
                                                     onClick={() => { historicoPagamento(o.os_id) }} className='m-0 p-0 px-1 border-0 bg-transparent'>
@@ -718,7 +761,7 @@ function OS() {
                                     </Select>
 
                                     <Select cols="col-md-6" id="veId" label="Veículos *" register={register} value={veId}
-                                        onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); console.log("veId: "+veId); errors.veId && trigger('veId'); }}
+                                        onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); console.log("veId: " + veId); errors.veId && trigger('veId'); }}
                                         erro={errors.veId}>
                                         {
                                             veiculos.map((ve, i) => (
@@ -736,27 +779,51 @@ function OS() {
                                     <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarServico() }}>
                                         <BsPlusLg size={14} style={{ color: '#000' }} />
                                     </Button>
-                                    <Select cols="col-md-8" id="serId" label="Nome" register={register} value={serId}
+                                    <Select cols="col-md-6" id="serId" label="Nome" register={register} value={serId}
                                         onChange={e => { setValue("serId", e.target.value); setSerId(e.target.value); errors.serId && trigger('serId'); }}
                                         erro={errors.serId}>
-                                        {servicos.map((ser, i) => (
-                                            <option key={i} value={ser.ser_id}>{ser.ser_nome}</option>
-                                        ))}
+                                        {servicos.map((ser, i) => {
+                                            if (serOS.filter(sos => sos.id == ser.ser_id).length == 0)
+                                                return (<option key={i} value={ser.ser_id}>{ser.ser_nome}</option>)
+                                        })}
                                     </Select>
-                                    <Form.Input type="number" min="0" cols="col-md-4" id="valor" name="valor" placeholder="R$150,00"
+                                    <Form.Input type="number" min="0" cols="col-md-2" id="serQtde" name="serQtde" placeholder=""
+                                        label="Quantidade" register={register} value={serQtde} classes="form-control addArrow"
+                                        onChange={e => { setSerQtde(e.target.value); }} />
+                                    {/*<Form.Input type="number" min="0" cols="col-md-4" id="valor" name="valor" placeholder="R$150,00"
                                         label="Valor (R$)" register={register} value={serVal}
                                         onChange={e => { setValue("valor", e.target.value); setSerVal(e.target.value); errors.valor && trigger("valor"); }}
+                                    erro={errors.valor} />*/}
+                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="valor" name="valor" placeholder="R$150,00"
+                                        label="Valor (R$)" register={register} value={serVal}
+                                        onChange={e => {
+                                            if (e.target.value.includes("R$")) {
+                                                var val = e.target.value.split('R$')[1];
+                                                val = val.replace(",","")
+                                                val = val.replace(".","")
+                                                setValue("valor", val);
+                                                setSerVal(val);
+                                            }
+                                            else {
+                                                setValue("valor", e.target.value);
+                                                setSerVal(e.target.value);
+                                            }
+                                            errors.valor && trigger("valor");
+                                        }}
                                         erro={errors.valor} />
 
                                     {serOS.map((sos, k) => (
                                         <>
-                                            <SelectReadOnly key={k} cols="col-md-8" id={sos.id}>
+                                            <SelectReadOnly key={k} cols="col-md-6" id={sos.id}>
                                                 <option selected key={k} value={sos.id}>{sos.nome}</option>
                                             </SelectReadOnly>
-
+                                            <div className="col-md-2">
+                                                <label></label>
+                                                <input disabled className="form-control addArrow" value={sos.qtde} />
+                                            </div>
                                             <div className="col-md-3">
                                                 <label></label>
-                                                <input disabled value={sos.valor} className="form-control" />
+                                                <input disabled value={"R$" + sos.valor} className="form-control" />
                                             </div>
                                             <div className="col-md-1 btExcluirItem">
                                                 <Button onClick={() => excluirServico(sos.id)}
@@ -779,16 +846,30 @@ function OS() {
                                     </Button>
                                     <Select cols="col-md-6" id="pecId" label="Nome" register={register} value={pecId}
                                         onChange={e => { setPecId(e.target.value); }}>
-                                        {pecas.map((pec, i) => (
-                                            <option key={i} value={pec.pec_id}>{pec.pec_nome}</option>
-                                        ))}
+                                        {pecas.map((pec, i) => {
+                                            if (pecOS.filter(pos => pos.id == pec.pec_id).length == 0)
+                                                return (<option key={i} value={pec.pec_id}>{pec.pec_nome}</option>)
+                                        })}
                                     </Select>
                                     <Form.Input type="number" min="0" cols="col-md-2" id="pecQtde" name="pecQtde" placeholder=""
                                         label="Quantidade" register={register} value={pecQtde}
                                         onChange={e => { setPecQtde(e.target.value); }} />
-                                    <Form.Input type="number" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder=""
+                                    {/*<Form.Input type="number" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder=""
                                         label="Valor (R$)" register={register} value={pecVal}
-                                        onChange={e => { setPecVal(e.target.value); }} />
+                                    onChange={e => { setPecVal(e.target.value); }} />*/}
+                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder=""
+                                        label="Valor (R$)" register={register} value={pecVal}
+                                        onChange={e => {
+                                            if (e.target.value.includes("R$")) {
+                                                var val = e.target.value.split('R$')[1];
+                                                val = val.replace(",","")
+                                                val = val.replace(".","")
+                                                setPecVal(val);
+                                            }
+                                            else {
+                                                setPecVal(e.target.value)
+                                            }
+                                        }} />
 
                                     {pecOS.map((pos, k) => (
                                         <>
@@ -801,7 +882,7 @@ function OS() {
                                             </div>
                                             <div className="col-md-3">
                                                 <label></label>
-                                                <input disabled value={pos.valor} className="form-control" />
+                                                <input disabled value={"R$" + pos.valor} className="form-control" />
                                             </div>
                                             <div className="col-md-1 btExcluirItem">
                                                 <Button onClick={() => excluirPeca(pos.id)}
@@ -853,6 +934,29 @@ function OS() {
                                         label="Kilometragem" value={kilometragem} />
                                 </div>
                             </div>
+                            {/*<Form.Input type="number" cols="col-md-6" id="valReceb" name="valReceb"
+                                label="Valor Recebido (R$)" value={valReceb}
+                                onChange={(e) => {
+                                    setValReceb(e.target.value); setValue("valReceb", e.target.value);
+                                    errors.valReceb && trigger('valReceb');
+                                }} erro={errors.valReceb} />*/}
+                            <Form.InputMoney type="text" cols="col-md-6" id="valReceb" name="valReceb"
+                                label="Valor Recebido (R$)" value={valReceb}
+                                onChange={(e) => {
+                                    if (e.target.value.includes("R$")) {
+                                        var val = e.target.value.split("R$")[1];
+                                        val = val.replace(",", "")
+                                        val = val.replace(".", "")
+                                        setValReceb(val);
+                                        setValue("valReceb", val);
+                                    }
+                                    else {
+                                        setValReceb(e.target.value);
+                                        setValue("valReceb", e.target.value);
+                                    }
+                                    errors.valReceb && trigger('valReceb');
+                                }} erro={errors.valReceb} />
+                            <label className='row'></label>
                             <Select cols="col-md-6 mb-2" id="metodoReceb" label="Método de Recebimento" register={register}
                                 value={metodoReceb} onChange={e => {
                                     setValue("metodoReceb", e.target.value); setMetodoReceb(e.target.value);
@@ -875,8 +979,19 @@ function OS() {
                             }
                             <div className="container">
                                 <div className="row secaoItensEstatico g-2" >
-                                    <Form.InputRO type="number" min="0" cols="col-md-6" id="valFiado" name="valFiado"
-                                        label="Valor Fiado (R$)" value={valFiado} onChange={e => { setValFiado(e.target.value) }} />
+                                    {/*<Form.InputRO type="number" min="0" cols="col-md-6" id="valFiado" name="valFiado"
+                                        label="Valor Fiado (R$)" value={valFiado} onChange={e => { setValFiado(e.target.value) }} />*/}
+                                    <Form.InputMoney type="text" min="0" cols="col-md-6" id="valFiado" name="valFiado"
+                                        label="Valor Fiado (R$)" value={valFiado}
+                                        onChange={e => {
+                                            if (e.target.value.includes("R$")) {
+                                                var val = e.target.value.split("R$")[1];
+                                                val = val.replace(",","")
+                                                val = val.replace(".","")
+                                                setValFiado(val);
+                                            }
+                                            setValFiado(e.target.value)
+                                        }} />
                                     <Form.InputRO type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6" id="dataReceb" name="dataReceb"
                                         label="Data do Recebimento" value={dtReceb} onChange={e => { setDtReceb(e.target.value) }} />
 

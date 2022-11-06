@@ -11,131 +11,152 @@
     margin-left: auto;
     margin-right: auto;
 }
-.h2-form{
+
+.h2-form {
     text-align: center;
     font-size: 1.4em;
 }
-.h2-titulo-secao{
-    font-family:'Comfortaa';
+
+.h2-titulo-secao {
+    font-family: 'Comfortaa';
     font-size: 1.7em;
     font-weight: 400;
 }
-label{
+
+label {
     font-size: 1em;
 }
 
 .form-control:focus {
     border-color: #565e64ab;
     box-shadow: none;
-} 
+}
 
 .btn-custom {
-	padding: 1px 15px 3px 2px;
-	border-radius: 50px;
+    padding: 1px 15px 3px 2px;
+    border-radius: 50px;
 }
 
 .btn-icon {
-	padding: 8px;
-	background: #ffffff;
+    padding: 8px;
+    background: #ffffff;
     margin-left: 0;
 }
-.modal-title{
+
+.modal-title {
     font-weight: 500;
     font-size: 1.3em;
 }
-.modal-body{
+
+.modal-body {
     padding: 1.3em;
 }
-.erroForm{
+
+.erroForm {
     color: #842029;
     font-size: 0.9em;
     padding: 0;
     margin: 0;
 }
-.mensagemForm{
+
+.mensagemForm {
     font-size: 0.9em;
     margin-top: 10px;
     margin-bottom: 0;
     padding: 5px 5px 0px 5px;
     border-radius: .25rem;
 }
-.mensagemForm-Sucesso{
+
+.mensagemForm-Sucesso {
     color: #0f5132;
     background-color: #d1e7dd;
     border-color: #badbcc;
 }
-.mensagemForm-Erro{
+
+.mensagemForm-Erro {
     color: #842029;
     background-color: #f8d7da;
     border-color: #f5c2c7;
 }
-.mensagemForm-Alerta{
+
+.mensagemForm-Alerta {
     color: #664d03;
     background-color: #fff3cd;
     border-color: #ffecb5;
 }
+
 /* Chrome e outros */
 /*input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}*
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
-}
+}*/
 
-.secaoItens{
+/* Firefox */
+/*input[type=number] {
+    -moz-appearance: textfield;
+}*/
+
+.secaoItens {
     border: 1px solid #ced4da;
     /*margin-top: 1em;*/
     border-radius: 8px;
     overflow-y: scroll;
     height: 8.5em;
     position: relative;
-    
+
     padding: 1.5%;
     padding-top: 4%;
 }
-.secaoItensEstatico{
+
+.secaoItensEstatico {
     border: 1px solid #ced4da;
     /*margin-top: 1em;*/
     border-radius: 8px;
     position: relative;
     padding: 1.5%;
 }
+
 #title {
     position: relative;
     /*top: -1.3em;*/
 
     display: inline;
     background-color: white;
-  }
-.btnMais{
+}
+
+.btnMais {
     float: right;
     width: 30px;
     position: absolute;
     top: 0.5em;
     right: 0.5em;
 }
-.btExcluirItem{
+
+.btExcluirItem {
     display: flex;
     align-items: end;
     justify-content: center;
     margin-bottom: 0.2em;
 }
-.btExcluir{
+
+.btExcluir {
     color: #dc3545
 }
-.btEditar{
+
+.btEditar {
     color: #0d6efd
 }
-.teste{
+
+.teste {
     min-height: 200px;
 }
-.btnmostrar{
+
+.btnmostrar {
     display: none;
 }
-  
-button:hover .btnmostrar{
-    display:block;
+
+.oi .modal-content{
+    width: 70%;
+    margin: auto;
 }

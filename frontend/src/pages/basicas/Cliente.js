@@ -19,6 +19,9 @@ import * as yup from "yup";
 import { BiGroup } from "react-icons/bi";
 import { FiTrash, FiEdit } from 'react-icons/fi';
 
+import BtSair from '../../components/BtSair';
+import ToastMessage from '../../components/ToastMessage';
+
 function Cliente() {
 
   const [cpf, setCPF] = useState('');
@@ -40,7 +43,12 @@ function Cliente() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [campoBusca, setCampoBusca] = useState('');
 
-  const { sleep, alerta, msgForm, setMsgForm, classes, setClasses } = useContext(UtilsContext)
+  const [toast, setToast] = useState(false);
+  const [classeToast, setClasseToast] = useState();
+  const [msgToast, setMsgToast] = useState("");
+  const [tituloToast, setTituloToast] = useState("");
+
+  const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
   const schema = yup.object({
     nome: yup.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -71,8 +79,8 @@ function Cliente() {
 
     e.preventDefault();
     //console.log("nome: " + nome + " telefone: " + tel + " cpf: " + cpf)
-    if (nome.length > 0 && cpf.length > 0 && tel.length > 0 && email.length>0) {
-      if (errors.nome == undefined && errors.cpf == undefined && errors.tel == undefined && errors.email==undefined) {
+    if (nome.length > 0 && cpf.length > 0 && tel.length > 0 && email.length > 0) {
+      if (errors.nome == undefined && errors.cpf == undefined && errors.tel == undefined && errors.email == undefined) {
         let resp;
         if (add) {
           //console.log("cpf: " + cpf + "\nnome: " + nome + "\ncep:" + cep);
@@ -128,10 +136,20 @@ function Cliente() {
   async function excluirCliente() {
     const resp = await api.delete('/clientes/' + id);
     if (JSON.stringify(resp.data.status) == 'false') {
-      alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir cliente').then(() => { setModalExcluir(false); setNomeTemp('') })
+      setTituloToast("Exclusão")
+      setMsgToast("Erro. Não foi possível excluir o cliente");
+      setClasseToast('Danger');
+      setToast(true);
+      setModalExcluir(false);
+      setNomeTemp('');
     }
     else {
-      alerta('mensagemForm mensagemForm-Sucesso', 'Cliente excluído').then(() => { setModalExcluir(false); setNomeTemp(''); })
+      setTituloToast("Exclusão")
+      setMsgToast("Cliente excluído");
+      setClasseToast('Success');
+      setToast(true);
+      setModalExcluir(false);
+      setNomeTemp('');
 
     }
     carregarClientes();
@@ -221,6 +239,7 @@ function Cliente() {
         <div id="content">
           <div className="container-fluid col-md-12 m-2">
             <h2 className="h2-titulo-secao">Clientes <BiGroup size={25} style={{ margin: '0.3rem' }} /></h2>
+            <BtSair onClick={logout} />
             <div className="line"></div>
 
             {/*botão modal*/}
@@ -337,6 +356,9 @@ function Cliente() {
       <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
         item="cliente" valor={nomeTemp} classesMsg={classes} msg={msgForm}
         onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirCliente() }} />
+
+      <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+        classes={classeToast} msg={msgToast} />
 
     </React.Fragment>
 

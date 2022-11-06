@@ -16,12 +16,13 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
-import { FiTrash, FiEdit, FiCheckCircle } from 'react-icons/fi';
-import { BiMoney } from 'react-icons/bi'
+import { FiTrash, FiEdit, FiCheckCircle, FiFilter } from 'react-icons/fi';
+import { BiMoney } from 'react-icons/bi';
+import BtSair from '../../components/BtSair';
 
 
 function ContaReceber() {
-    const [cr, serCR] = useState([])
+    const [cr, setCR] = useState([])
     const [modalQuitar, setModalQuitar] = useState(false);
 
     const [numOS, setNumOS] = useState("");
@@ -40,6 +41,9 @@ function ContaReceber() {
     const [classeToast, setClasseToast] = useState();
     const [msgToast, setMsgToast] = useState("");
 
+    const [filtro, setFiltro] = useState("T");
+    const [campoBusca, setCampoBusca] = useState("");
+
     const schema = yup.object({
         valReceb: yup.string().required("Informe o valor"),
         dtReceb: yup.string().required("Informe a data"),
@@ -50,7 +54,7 @@ function ContaReceber() {
         mode: 'onBlur', reValidateMode: 'onChange', resolver: yupResolver(schema),
     });
 
-    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, toastComponent } = useContext(UtilsContext)
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, toastComponent, logout } = useContext(UtilsContext)
 
     useEffect(() => {
         carregarCR();
@@ -59,10 +63,18 @@ function ContaReceber() {
         setValRest(divRest - valReceb);
     }, [valReceb]);
 
+    useEffect(() => {
+        console.log("filtro: " + filtro)
+    }, [filtro])
+
     async function carregarCR() {
         const resp = await api.get('/contareceber');
-        console.log(JSON.stringify(resp.data))
-        serCR(resp.data)
+        console.log("carregarCR");
+        console.log("campoBusca: " + campoBusca + " " + JSON.stringify(resp.data))
+        if (filtro == "Cliente" && campoBusca.length > 0)
+            setCR(resp.data.filter(c => c.cli_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+        else
+            setCR(resp.data)
     }
     function formatarData(data) {
         data = data.split('-')
@@ -107,40 +119,40 @@ function ContaReceber() {
                     })
                     if (resp2.data.status) {
                         setModalQuitar(false);
-                        personalizarToast(true,"Success","Recebimento registrado com sucesso!");
+                        personalizarToast(true, "Success", "Recebimento registrado com sucesso!");
                     }
-                    else{
+                    else {
                         setModalQuitar(false);
-                        personalizarToast(false,"Danger","Erro ao registrar recebimento!");
+                        personalizarToast(false, "Danger", "Erro ao registrar recebimento!");
                     }
                 }
                 else {
                     setModalQuitar(false);
-                    personalizarToast(true,"Success","Recebimento registrado com sucesso!");
+                    personalizarToast(true, "Success", "Recebimento registrado com sucesso!");
                 }
             }
-            else{
+            else {
                 setModalQuitar(false);
-                personalizarToast(false,"Danger","Erro ao registrar recebimento!");
+                personalizarToast(false, "Danger", "Erro ao registrar recebimento!");
             }
-            carregarCR();   
+            carregarCR();
         }
     }
-    function personalizarToast(status, classe, msg){
+    function personalizarToast(status, classe, msg) {
         setToast(status);
         setClasseToast(classe);
         setMsgToast(msg);
     }
-    function limparCampos(){
+    function limparCampos() {
         setCliente("");
         setDivOrig("");
         setDivRest("");
         setValReceb("");
-        setValue("valReceb","");
+        setValue("valReceb", "");
         setDtReceb("");
-        setValue("dtReceb","");
+        setValue("dtReceb", "");
         setMetodoReceb("");
-        setValue("metodoReceb","");
+        setValue("metodoReceb", "");
         setValRest(0);
         setDtProxReceb("");
         setNumOS("");
@@ -152,9 +164,25 @@ function ContaReceber() {
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
                         <h2 className="h2-titulo-secao">Contas a Receber  <BiMoney style={{ color: '#231f20' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
                         {/*<BtAdicionar />*/}
-                        <AreaSearch placeholder="Digite aqui..." />
+                        <AreaSearch placeholder="Digite aqui..." value={campoBusca} onKeyUp={carregarCR} onChange={(e) => setCampoBusca(e.target.value)}>
+                            <div className="row col-md-5">
+                                <div className="col-md-1" style={{ padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'end' }}>
+                                    <FiFilter size={20} style={{ color: '#231f20' }} />
+                                </div>
+
+                                <div className="col-md-6">
+                                    <select id="filtro" className="form-select" value={filtro} onChange={e => { setFiltro(e.target.value) }}>
+                                        <option selected value={"T"}>Filtre por</option>
+                                        <option value={"CA"}>Contas em aberto</option>
+                                        <option value={"CQ"}>Contas quitadas</option>
+                                        <option value={"Cliente"}>Cliente</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </AreaSearch>
 
                         <table className="table table-hover" style={{ overflow: 'auto' }} >
                             <thead>
@@ -171,29 +199,32 @@ function ContaReceber() {
                             </thead>
                             <tbody>
                                 {cr.map((c, i) => (
-                                    (c.cr_dtReceb==null) &&
-                                        <tr key={i}>
-                                            <th scope="row">{c.cr_id}</th>
-                                            <td>{c.os_id}</td>
-                                            <td>{c.cli_nome}</td>
-                                            <td>{c.ve_placa}</td>
-                                            <td>{c.cr_valor}</td>
-                                            <td>{formatarData(c.cr_dtVenc.split('T')[0])}</td>
-                                            <td>{c.os_observacoes.substring(0, 30)}{(c.os_observacoes).length > 30 && "..."}</td>
-                                            <td>
+                                    (filtro == "T" || filtro == "Cliente" || (filtro == "CA" && c.cr_dtReceb == null) || (filtro == "CQ" && c.cr_dtReceb != null)) &&
+                                    <tr key={i}>
+                                        <th scope="row">{c.cr_id}</th>
+                                        <td>{c.os_id}</td>
+                                        <td>{c.cli_nome}</td>
+                                        <td>{c.ve_placa}</td>
+                                        <td>{c.cr_valor}</td>
+                                        <td>{formatarData(c.cr_dtVenc.split('T')[0])}</td>
+                                        <td>{c.os_observacoes.substring(0, 30)}{(c.os_observacoes).length > 30 && "..."}</td>
+                                        <td>
+                                            {
+                                                c.cr_dtReceb == null &&
                                                 <Button data-toggle="tooltip" data-placement="bottom" title="Quitar"
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent' >
                                                     <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { quitar(c, i); setModalQuitar(true); }} />
                                                 </Button>
-                                                <Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiEdit style={{ color: '#231f20' }} />
-                                                </Button>
-                                                <Button
+                                            }
+                                            {/*<Button className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                <FiEdit style={{ color: '#231f20' }} />
+                                            </Button>-->*/}
+                                            {/*<Button
                                                     className='m-0 p-0 px-1 border-0 bg-transparent'>
                                                     <FiTrash style={{ color: '#231f20' }} />
-                                                </Button>
-                                            </td>
-                                        </tr>
+                                            </Button>*/}
+                                        </td>
+                                    </tr>
                                 ))}
                             </tbody>
                         </table>
@@ -221,10 +252,27 @@ function ContaReceber() {
                                         label="Dívida Restante (R$)" value={divRest} />
                                 </div>
                             </div>
-                            <Form.Input type="number" cols="col-md-6" id="valReceb" name="valReceb"
+                            {/*<Form.Input type="number" cols="col-md-6" id="valReceb" name="valReceb"
                                 label="Valor Recebido (R$)" value={valReceb}
                                 onChange={(e) => {
                                     setValReceb(e.target.value); setValue("valReceb", e.target.value);
+                                    errors.valReceb && trigger('valReceb');
+                                }}
+                                register={register} erro={errors.valReceb} />*/}
+                            <Form.InputMoney type="text" cols="col-md-6" id="valReceb" name="valReceb"
+                                label="Valor Recebido (R$)" value={valReceb}
+                                onChange={(e) => {
+                                    if (e.target.value.includes("R$")) {
+                                        var val = e.target.value.split("R$")[1]
+                                        val = val.replace(",", "")
+                                        val = val.replace(".", "")
+                                        setValReceb(val);
+                                        setValue("valReceb", val);
+                                    }
+                                    else {
+                                        setValReceb(e.target.value);
+                                        setValue("valReceb", e.target.value);
+                                    }
                                     errors.valReceb && trigger('valReceb');
                                 }}
                                 register={register} erro={errors.valReceb} />
@@ -250,9 +298,21 @@ function ContaReceber() {
                             <div className="container">
                                 <div className='mb-2' style={{ fontWeight: 500 }}></div>
                                 <div className="row secaoItensEstatico g-2" >
-                                    <Form.Input type="number" cols="col-md-6" id="valRest" name="valRest"
+                                    {/*<Form.Input type="number" cols="col-md-6" id="valRest" name="valRest"
                                         label="Valor Restante (R$)" value={valRest}
-                                        onChange={(e) => { setValRest(e.target.value) }} />
+                            onChange={(e) => { setValRest(e.target.value) }} />*/}
+                                    <Form.InputMoney type="text" cols="col-md-6" id="valRest" name="valRest"
+                                        label="Valor Restante (R$)" value={valRest}
+                                        onChange={(e) => {
+                                            if (e.target.value.includes("R$")) {
+                                                var val = e.target.value.split("R$")[1];
+                                                val = val.replace(",","");
+                                                val = val.replace(".","");
+                                                setValRest(val);
+                                            }
+                                            else
+                                                setValRest(e.target.value)
+                                        }} />
                                     <Form.Input type="date" cols="col-md-6"
                                         id="dtProxReceb" name="dtProxReceb" label="Próximo Recebimento" value={dtProxReceb}
                                         onChange={(e) => { setDtProxReceb(e.target.value) }} />
@@ -271,8 +331,8 @@ function ContaReceber() {
                     </Modal.Footer>
                 </Modal>
             </>
-            <ToastMessage show={toast} titulo="Conta a receber" onClose={()=>setToast(false)} 
-                classes={classeToast} msg={msgToast}/>
+            <ToastMessage show={toast} titulo="Conta a receber" onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </>
     )
 }

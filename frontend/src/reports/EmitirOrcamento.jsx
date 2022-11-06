@@ -29,13 +29,14 @@ function EmitirOS(ordemservico, servicos, pecas){
     var desc = 0;
     var orig = 0;
     const dataservicos = servicos.map((s)=>{
-        desc+=Number(s.ser_maoObra-s.serOS_val);
-        orig+=Number(s.ser_maoObra);
-        console.log("desc: "+desc+" orig: "+orig)
+        var precoReal = Number(s.ser_maoObra);
+        var precoCobrado = Number(s.serOS_val/s.serOS_qtde)
+        desc+=(precoReal-precoCobrado)*s.serOS_qtde;
+        orig+=precoReal*s.serOS_qtde;
         return [
             {text: s.ser_nome},
             {text: s.ser_maoObra},
-            {text: (s.ser_maoObra-s.serOS_val)},
+            {text: s.ser_maoObra-(s.serOS_val/s.serOS_qtde)},
             {text: s.serOS_val}
         ]
     });

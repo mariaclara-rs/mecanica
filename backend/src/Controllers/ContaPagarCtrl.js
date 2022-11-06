@@ -3,7 +3,7 @@ const db = require('../models/Database')
 module.exports = {
     async listar (request, response){
         const con = await db.conecta();
-        let sql = "SELECT cp_id, cp_valTot, cp_dataCriacao, cp_anotacoes, dist.dist_id, dist.dist_nome, tp.* "
+        let sql = "SELECT cp_id, cp_valTot, cp_dataCriacao, cp_anotacoes, cp_descricao, dist.dist_id, dist.dist_nome, tp.* "
         +"FROM contapagar cp left join distribuidora dist on dist.dist_id = cp.dist_id "
         +"inner join tipodespesa tp on tp.tp_id = cp.tp_id ";
         const cp = await db.consulta(sql);
@@ -34,11 +34,11 @@ module.exports = {
         return response.json(JSON.parse(resp));
     },
     async gravar(request, response){
-        const {valTot,dtCriacao,anotacoes,distId,tdId} = request.body;
-        const sql = "INSERT INTO contapagar (cp_valTot,cp_dataCriacao,cp_anotacoes,dist_id, tp_id) " +
-            "VALUES (?,?,?,?,?)";
+        const {valTot,dtCriacao,anotacoes,distId,tdId,desc} = request.body;
+        const sql = "INSERT INTO contapagar (cp_valTot,cp_dataCriacao,cp_anotacoes,dist_id, tp_id,cp_descricao) " +
+            "VALUES (?,?,?,?,?,?)";
         const valores = [
-            valTot,dtCriacao,anotacoes,distId,tdId
+            valTot,dtCriacao,anotacoes,distId,tdId,desc
         ];
         await db.conecta();
         const result = await db.manipula(sql, valores);

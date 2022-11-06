@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useContext} from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 
-import {UtilsContext} from '../../context/UtilsContext'
+import { UtilsContext } from '../../context/UtilsContext'
 
 import api from '../../services/api';
 
@@ -17,6 +17,10 @@ import * as yup from "yup";
 import { FiTrash, FiEdit } from 'react-icons/fi';
 import { BiBuildings } from "react-icons/bi"
 
+import BtSair from '../../components/BtSair';
+
+import ToastMessage from '../../components/ToastMessage';
+
 function Distribuidora() {
     const [nome, setNome] = useState('');
     const [tel, setTel] = useState('');
@@ -32,7 +36,12 @@ function Distribuidora() {
     const [modalExcluir, setModalExcluir] = useState(false);
     const [campoBusca, setCampoBusca] = useState('');
 
-    const {sleep,alerta,msgForm,setMsgForm,classes,setClasses} = useContext(UtilsContext)
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
         nome: yup.string().required("Informe o nome da distribuidora"),
@@ -62,11 +71,20 @@ function Distribuidora() {
     async function excluirDist() {
         const resp = await api.delete('/distribuidoras/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Impossível excluir distriuidora').then(() => { setModalExcluir(false); setDistTemp('') })
+            setTituloToast("Exclusão")
+            setMsgToast("Erro. Não foi possível excluir a distribuidora");
+            setClasseToast('Danger');
+            setToast(true);
+            setModalExcluir(false);
+            setDistTemp('');
         }
         else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Distribuidora excluida').then(() => { setModalExcluir(false); setDistTemp(''); })
-
+            setTituloToast("Exclusão")
+            setMsgToast("Distribuidora excluída");
+            setClasseToast('Success');
+            setToast(true);
+            setModalExcluir(false);
+            setDistTemp('');
         }
         carregarDist();
     }
@@ -167,6 +185,7 @@ function Distribuidora() {
                 <div id="content">
                     <div className="container-fluid col-md-12 m-2">
                         <h2 className="h2-titulo-secao">Distribuidoras <BiBuildings size={25} style={{ margin: '0.3rem' }} /></h2>
+                        <BtSair onClick={logout} />
                         <div className="line"></div>
                         {/*botão modal*/}
                         <button type="button" className="btn btn-dark" data-toggle="modal"
@@ -255,6 +274,9 @@ function Distribuidora() {
             <ModalExcluir show={modalExcluir} onHide={() => { setModalExcluir(false) }}
                 item="distribuidora" valor={distTemp} classesMsg={classes} msg={msgForm}
                 onClickCancel={() => { setModalExcluir(false) }} onClickSim={() => { excluirDist() }} />
+
+            <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                classes={classeToast} msg={msgToast} />
         </React.Fragment>
     )
 }

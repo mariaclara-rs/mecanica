@@ -225,16 +225,8 @@ function EmitirOS(ordemservico, servicos, pecas){
             mySuperImage: 'data:image/jpeg;base64,...content...',
         
             // in browser is supported loading images via url (https or http protocol) (minimal version: 0.1.67)
-            snow: 'https://media.istockphoto.com/vectors/wrench-and-screwdriver-tools-drawing-vector-id492669132?k=20&m=492669132&s=170667a&w=0&h=00tAGt_sHXbpdWtYPKy2cG_dK7LpMxB2azYh9eAYkhk=',
+            snow: 'https://media.istockphoto.com/vectors/wrench-and-screwdriver-tools-drawing-vector-id492669132?k=20&m=492669132&s=170667a&w=0&h=00tAGt_sHXbpdWtYPKy2cG_dK7LpMxB2azYh9eAYkhk='
         
-            // is supported loading images via url with custom headers (minimal version: 0.2.5)
-            strawberries: {
-              url: 'https://picsum.photos/id/1080/367/267',
-              headers: {
-                myheader: '123',
-                myotherheader: 'abc',
-              }
-            }
           },
 
         footer: {

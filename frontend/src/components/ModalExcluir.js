@@ -14,7 +14,7 @@ export default function ModalExcluir({ onClickCancel, onClickSim, classesMsg, ms
             <Modal.Footer>
                 {/*<Button variant="secondary" onClick={onClickCancel}>
                     Cancelar
-    </Button>*/}
+                </Button>*/}
                 <Button type="submit" variant="danger" onClick={onClickSim}>
                     Sim
                 </Button>
