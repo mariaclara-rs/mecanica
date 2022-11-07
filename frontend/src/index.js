@@ -1,10 +1,10 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';//permite que o react se comunique com a arvore de elementos dom (html)
+import ReactDOM from 'react-dom';//permite que o react se comunique com a arvore de elementos dom (html)
 import Rotas from './routes';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
+ReactDOM.render(
     <React.StrictMode>
       <Rotas />
-    </React.StrictMode>
+    </React.StrictMode>,
+    document.getElementById('root')
 );

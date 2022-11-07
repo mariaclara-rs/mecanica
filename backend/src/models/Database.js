@@ -8,10 +8,10 @@ module.exports = new
 
         async conecta() {
             const config = {
-                host: "localhost",//process.env.HOST,
-                database: "mecanica", //"sql10520488",
-                user: "root",//"sql10520488",
-                password: "12345"//"El6at1cYxl"
+                host: process.env.HOST,
+                database: process.env.DATABASE, //"sql10520488",
+                user: process.env.USER,//"sql10520488",
+                password: process.env.PASSWORD//"El6at1cYxl"
             }
             try {
                 this.connection = await new mysql.createConnection(config);

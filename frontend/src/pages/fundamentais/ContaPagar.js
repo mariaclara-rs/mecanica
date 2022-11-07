@@ -620,8 +620,8 @@ function ContaPagar() {
                                         onChange={e => {
                                             if(e.target.value.includes("R$")){
                                                 var val = e.target.value.split("R$")[1];
-                                                val = val.replace(',','.')
-                                                console.log("val: "+val)
+                                                val = val.replace(",","")
+                                                val = val.replace(".","")
                                                 setValue("parcVal", val); 
                                                 setParcVal(val); 
                                             }
