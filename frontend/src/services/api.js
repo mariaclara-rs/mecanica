@@ -2,7 +2,7 @@ import axios from 'axios';
 import { token } from '../auth';
 
 const api  = axios.create({
-    baseURL:'http://localhost:3344',
+    baseURL:'https://apimecanica.vercel.app',
     headers: {
       'Authorization': token()
     }
