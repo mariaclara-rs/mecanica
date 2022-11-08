@@ -7,6 +7,8 @@ import { BsClockHistory, BsReddit } from 'react-icons/bs'
 import { RiListSettingsLine, RiWallet3Line } from 'react-icons/ri'
 import { FiTool } from 'react-icons/fi'
 import UtilsContext from '../context/UtilsContext';
+import Button from 'react-bootstrap/Button';
+import Collapse from 'react-bootstrap/Collapse';
 
 //FaTools
 
@@ -14,7 +16,7 @@ function Sidebar() {
     const [pageatual, setPageAtual] = useState("");
     const [classe, setClasse] = useState("collapse")
     const [cssheight, setCssHeight] = useState("0px;")
-
+    const [open, setOpen] = useState(false);
     const options = [{ link: "/ordemservico", name: "Ordem de Serviço", icon: <RiListSettingsLine size={20} style={{ margin: '0.3rem' }} /> },
     { link: "/agendamentos", name: "Agendamentos", icon: <BsClockHistory size={18} style={{ margin: '0.3rem' }} /> },
     { link: "/contareceber", name: "Contas a Receber", icon: <BiMoney size={20} style={{ margin: '0.3rem' }} /> },
@@ -37,9 +39,20 @@ function Sidebar() {
         if (i < tambasicas) {
             setClasse("in")
             setCssHeight("auto;")
+            setOpen(true);
         }
     }, []);
 
+    function menuCadBasicos() {
+        if (classe == "in") {
+            setClasse("collapse");
+            setCssHeight("0px;");
+        }
+        else {
+            setClasse("in");
+            setCssHeight("auto;");
+        }
+    }
 
 
     return (
@@ -50,7 +63,7 @@ function Sidebar() {
 
                     <div className="container row mb-4">
                         <div className="col-md-10">
-                            <p style={{display: 'inline'}}><b>Painel de Controle</b></p>
+                            <p style={{ display: 'inline' }}><b>Painel de Controle</b></p>
                         </div>
                         <div className="col-md-2 alinharIconPainel">
                             <img src={require('../img/mecanico.png')} style={{ width: '2.7em', marginLeft: '-2em' }} />
@@ -58,30 +71,34 @@ function Sidebar() {
                     </div>
 
                     <li>
-                        <a data-toggle="collapse" href="#collapseBasicos">Cadastros base<IoIosArrowDown size={20} style={{ margin: '0.3rem' }} /></a>
+                        <a onClick={() => setOpen(!open)} aria-controls="example-collapse-text" aria-expanded={open}>
+                            Cadastros base<IoIosArrowDown size={20} style={{ margin: '0.3rem' }} />
+                        </a>
                     </li>
-                    <div className={classe} id="collapseBasicos" style={{ innerHeight: cssheight }}>
-                        {basicas.map((option, i) => {
-                            return (
-                                <li key={i}>{/*f2f2f1*/}
-                                    {pageatual == option.link ?
-                                        <a href={option.link} style={{ backgroundColor: '#6c757d', color: '#fff', fontSize: '1em' }}> {/*style={{backgroundColor:active && 'red'}}*/}
-                                            &nbsp;&nbsp;
-                                            {option.icon}
-                                            {option.name}
-                                        </a>
-                                        :
-                                        <a href={option.link} style={{ fontSize: '1em', color: '#35363a' }}> {/*style={{backgroundColor:active && 'red'}}*/}
-                                            <b>&nbsp;&nbsp;
+                    <Collapse in={open}>
+                        <div id="example-collapse-text" >
+                            {basicas.map((option, i) => {
+                                return (
+                                    <li key={i}>{/*f2f2f1*/}
+                                        {pageatual == option.link ?
+                                            <a href={option.link} style={{ backgroundColor: '#6c757d', color: '#fff', fontSize: '1em' }}> {/*style={{backgroundColor:active && 'red'}}*/}
+                                                &nbsp;&nbsp;
                                                 {option.icon}
-                                                {option.name}</b>
-                                        </a>
-                                    }
-                                </li>
-                            )
-                        })}
+                                                {option.name}
+                                            </a>
+                                            :
+                                            <a href={option.link} style={{ fontSize: '1em', color: '#35363a' }}> {/*style={{backgroundColor:active && 'red'}}*/}
+                                                <b>&nbsp;&nbsp;
+                                                    {option.icon}
+                                                    {option.name}</b>
+                                            </a>
+                                        }
+                                    </li>
+                                )
+                            })}
 
-                    </div>
+                        </div>
+                    </Collapse>
                     {options.map((option, i) => {
                         return (
                             <li key={i}>{/*f2f2f1*/}
