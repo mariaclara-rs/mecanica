@@ -81,8 +81,7 @@ function ContaReceber() {
         if (rel == "CI") {
             const resp = await api.get('/clientesinadimplentes')
             carregarDadosMecanica().then((respmec)=>{
-                setMecanica(respmec)
-                EmitirClientesInadimplentes(resp.data);
+                EmitirClientesInadimplentes(resp.data,respmec);
             });
         }
     }, [rel]);
