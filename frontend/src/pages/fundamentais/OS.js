@@ -9,7 +9,7 @@ import ModalExcluir from '../../components/ModalExcluir';
 import BtAdicionar from '../../components/BtAdicionar';
 import Select, { SelectReadOnly } from '../../components/Select';
 
-import { FiTrash, FiEdit, FiCheckCircle, FiDownload, FiFilter } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiCheckCircle, FiDownload, FiFilter, FiEye } from 'react-icons/fi';
 import { BsPlusLg } from 'react-icons/bs';
 import { RiListSettingsLine, RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { MdTimeline } from 'react-icons/md';
@@ -25,8 +25,6 @@ import EmitirOS from '../../reports/EmitirOS';
 import HistoricoPagamentoOS from '../../reports/HistoricoPagamentoOS';
 import EmitirOrcamento from '../../reports/EmitirOrcamento';
 import BtSair from '../../components/BtSair';
-
-
 
 function OS() {
 
@@ -69,8 +67,8 @@ function OS() {
     const [nomeCliente, setNomeCliente] = useState("");
     const [foneCliente, setFoneCliente] = useState("");
 
-    const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas } = useContext(DadosContext)
-    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
+    const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas, carregarDadosMecanica } = useContext(DadosContext)
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout, aredondar } = useContext(UtilsContext)
 
     const [toast, setToast] = useState(false);
     const [classeToast, setClasseToast] = useState();
@@ -81,6 +79,8 @@ function OS() {
 
     const [primeiroClique, setPrimeiroClique] = useState(false);
     const [campoBusca, setCampoBusca] = useState("");
+
+    const [visualizar, setVisualizar] = useState(false);
 
     const schema = yup.object({
         cliId: yup.string().required("Selecione um cliente"),
@@ -130,8 +130,12 @@ function OS() {
     }, [orcamento])
 
     useEffect(() => {
-        if (o != null)
-            setValFiado(o.os_valTot - valReceb);
+        if (o != null) {
+            if ((o.os_valTot - valReceb) > 0)
+                setValFiado(o.os_valTot - valReceb);
+            else
+                setValFiado(0)
+        }
     }, [valReceb]);
 
     async function carregarOS() {
@@ -248,6 +252,7 @@ function OS() {
         const resp = await api.delete('/ordemservico/' + o.os_id)
 
         if (resp.data.status) {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Orçamento excluído");
             setClasseToast('Success');
@@ -256,6 +261,7 @@ function OS() {
             setO(null);
         }
         else {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Erro ao tentar excluir orçamento");
             setClasseToast('Danger');
@@ -299,16 +305,16 @@ function OS() {
                 });
                 limparCampos();
                 carregarOS();
-                setModal(false);
+                setToast(false);
                 setTituloToast("Cadastro")
                 setMsgToast("Orçamento registrado com sucesso");
                 setClasseToast('Success');
+                setModal(false);
                 setToast(true);
             }
             else {
                 setClasses("mensagemForm mensagemFom-Erro");
                 alerta('mensagemForm mensagemFom-Erro', 'Erro. Selecione um cliente ou registre um novo');
-                console.log(classes)
             }
 
         }
@@ -343,11 +349,11 @@ function OS() {
                         if (r.data.status) {
                             limparCampos();
                             carregarOS();
-                            setModal(false);
-                            console.log("modal " + modal);
+                            setToast(false);
                             setTituloToast("Edição")
-                            setMsgToast("Orçamento editado com sucesso");
+                            setMsgToast("Orçamento editado com sucesso!");
                             setClasseToast('Success');
+                            setModal(false);
                             setToast(true);
                         }
                     })
@@ -391,11 +397,13 @@ function OS() {
                         }
                         limparCampos();
                         alerta('mensagemForm mensagemForm-Sucesso', 'Ordem de Serviço Aberta!');
+                        setToast(false);
                         carregarOS();
                         setTituloToast("Cadastro")
                         setMsgToast("Ordem de serviço aberta!");
                         setClasseToast('Success');
                         setToast(true);
+                        setModal(false);
 
                     });
                 }
@@ -433,10 +441,11 @@ function OS() {
                             if (r.data.status) {
                                 limparCampos();
                                 carregarOS();
-                                setModal(false);
+                                setToast(false);
                                 setTituloToast("Edição")
-                                setMsgToast("Ordem de Serviço Editada!");
+                                setMsgToast("Ordem de Serviço editada com sucesso!");
                                 setClasseToast('Success');
+                                setModal(false);
                                 setToast(true);
                             }
                         })
@@ -497,10 +506,11 @@ function OS() {
                             cr_valor: valFiado
                         })
                     }
-                    setModalFechar(false)
+                    setToast(false);
                     setTituloToast("Ordem de Serviço");
                     setMsgToast("Ordem de Serviço fechada com sucesso!");
                     setClasseToast('Success');
+                    setModalFechar(false);
                     setToast(true);
                 }
                 limparCamposFOS();
@@ -514,16 +524,28 @@ function OS() {
     async function editarOS(os_id, i) {
         let ordemservico = os.filter(o => o.os_id == os_id)[0]
         setFlagCliente(false);
-        //um orçamento pode se tornar uma os, mas uma os não pode se tornar um orçamento
         limparCampos();
         setO(ordemservico)
         carregarDadosOS(i)
         setAdd(false)
         setModal(true)
-        if (ordemservico.os_status == 'O') {
+        if (os[i].os_status == 'O') {
             setOrcamento(true);
         }
+        else
+            setOrcamento(false);
     }
+
+    async function visualizarOS(os_id, i) {
+        setVisualizar(true);
+        carregarDadosOS(i);
+        setModal(true);
+        if (os[i].os_status == 'O')
+            setOrcamento(true);
+        else
+            setOrcamento(false);
+    }
+
     async function carregarDadosOS(i) {
         setCliId(os[i].cli_id)
         setValue("cliId", os[i].cli_id)
@@ -554,7 +576,6 @@ function OS() {
         })
         let dataPeca = []
         await api.get('/pecaos/' + os[i].os_id).then((respPeca) => {
-            console.log("retorno : " + JSON.stringify(respPeca.data))
             for (var k = 0; k < respPeca.data.length; k++) {
                 dataPeca.push({
                     id: respPeca.data[k].pec_id,
@@ -563,24 +584,32 @@ function OS() {
                     valor: respPeca.data[k].pecOS_valTot,
                 })
             }
-            console.log("dataPeca:\n" + JSON.stringify(dataPeca))
             setPecOS(dataPeca)
         })
     }
     async function relatorio(os) {
         const serv = await api.get('/servicoos/' + os.os_id);
         const pec = await api.get('/pecaos/' + os.os_id);
+        
         if (os.os_status == "O") {
-            EmitirOrcamento(os, serv.data, pec.data);
+            carregarDadosMecanica().then((respmec)=>{
+                EmitirOrcamento(os, serv.data, pec.data,respmec);
+            });
+            
         }
-        else
-            EmitirOS(os, serv.data, pec.data);
+        else{
+            carregarDadosMecanica().then((respmec2)=>{
+                EmitirOS(os, serv.data, pec.data,respmec2);
+            });
+            
+        }
     }
 
     async function historicoPagamento(os_id) {
         let ordemservico = os.filter(o => o.os_id == os_id)[0]
         const crs = await api.get('/contareceber/' + os_id);
-        HistoricoPagamentoOS(ordemservico, crs.data)
+        carregarDadosMecanica().then((respMec)=>{HistoricoPagamentoOS(ordemservico, crs.data,respMec)});
+        
     }
 
     const cadCliente = async (e) => {
@@ -595,15 +624,14 @@ function OS() {
             setTituloToast("Cadastro");
             if (resp.data.status) {
                 setIdNovoCliente(resp.data.lastId);
+                setToast(false);
                 setMsgToast("Cliente cadastrado com sucesso");
                 setClasseToast('Success');
                 setToast(true);
                 setGravouCliente(true);
             }
             else {
-                setMsgToast("Erro ao tentar cadastrar cliente");
-                setClasseToast('Danger');
-                setToast(true);
+                alerta('mensagemForm mensagemFom-Erro', 'Erro. Não foi possível cadastrar o cliente!');
             }
         }
         carregarClis();
@@ -643,75 +671,81 @@ function OS() {
                             </div>
 
                         </AreaSearch>
-
-                        <table className="table table-hover" style={{ overflow: 'auto' }} >
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Tipo</th>
-                                    <th scope="col">Data da Abertura</th>
-                                    <th scope="col">Cliente</th>
-                                    <th scope="col">Marca Veículo</th>
-                                    <th scope="col">Placa</th>
-                                    <th scope="col">Km</th>
-                                    <th scope="col">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {os.map((o, i) => (
-                                    (filtro == "T" || filtro == "Cliente" || o.os_status == filtro) &&
-                                    <tr key={i}>
-
-                                        <th scope="row">{o.os_id}</th>
-                                        <td>{o.os_status == "O" ? "Orçamento" : "Ordem de Serviço"}</td>
-                                        <td>{formatarData(o.os_dataAbertura.split('T')[0])}</td>
-                                        <td>{o.cli_nome}</td>
-                                        <td>{o.mc_nome != null ? o.mc_nome : ""}</td>
-                                        <td>{o.ve_placa != null ? o.ve_placa : ""}</td>
-                                        <td>{o.os_vekm != null ? o.os_vekm : ""}</td>
-                                        <td>
-                                            <Button data-toggle="tooltip" data-placement="bottom" title="Emitir pdf"
-                                                className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiDownload style={{ color: '#231f20' }} onClick={() => { relatorio(o) }} />
-                                            </Button>
-                                            {(o.os_status == "A") &&
-
-                                                <Button data-toggle="tooltip" data-placement="bottom" title="Fechar OS"
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { setModalFechar(true); carregarFechamentoOS(o.os_id); }} />
-                                                </Button>
-                                            }
-                                            {(o.os_status != "F") &&
-                                                <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { editarOS(o.os_id, i); setPrimeiroClique(true) }}>
-                                                    <FiEdit className='btEditar' />
-                                                </Button>
-                                            }
-                                            {o.os_status == "F" &&
-                                                <Button data-toggle="tooltip" data-placement="bottom" title="Histórico de Pagamento"
-                                                    onClick={() => { historicoPagamento(o.os_id) }} className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <MdTimeline style={{ color: '#231f20' }} />
-                                                </Button>
-                                            }
-
-                                            {o.os_status == "O" &&
-                                                <Button onClick={() => { setO(o); setModalExcluir(true); }}
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash className='btExcluir' />
-                                                </Button>
-                                            }
-
-                                        </td>
+                        <div className="scrollYTable">
+                            <table className="table table-hover" style={{ overflow: 'auto' }} >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Tipo</th>
+                                        <th scope="col">Data da Abertura</th>
+                                        <th scope="col">Cliente</th>
+                                        <th scope="col">Marca Veículo</th>
+                                        <th scope="col">Placa</th>
+                                        <th scope="col">Km</th>
+                                        <th scope="col">Ação</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {os.map((o, i) => (
+                                        (filtro == "T" || filtro == "Cliente" || o.os_status == filtro) &&
+                                        <tr key={i}>
+
+                                            <th scope="row">{o.os_id}</th>
+                                            <td>{o.os_status == "O" ? "Orçamento" : "Ordem de Serviço"}</td>
+                                            <td>{formatarData(o.os_dataAbertura.split('T')[0])}</td>
+                                            <td>{o.cli_nome}</td>
+                                            <td>{o.mc_nome != null ? o.mc_nome : ""}</td>
+                                            <td>{o.ve_placa != null ? o.ve_placa : ""}</td>
+                                            <td>{o.os_vekm != null ? o.os_vekm : ""}</td>
+                                            <td>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { visualizarOS(o.os_id, i) }}>
+                                                    <FiEye className='btComum' />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Emitir pdf"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark'>
+                                                    <FiDownload style={{ color: '#231f20' }} onClick={() => { relatorio(o) }} />
+                                                </Button>
+                                                {(o.os_status == "A") &&
+
+                                                    <Button data-toggle="tooltip" data-placement="bottom" title="Fechar OS"
+                                                        className='m-0 p-0 px-1 border-0 bg-transparent btn-dark'>
+                                                        <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { setModalFechar(true); carregarFechamentoOS(o.os_id); }} />
+                                                    </Button>
+                                                }
+                                                {(o.os_status != "F") &&
+                                                    <Button data-toggle="tooltip" data-placement="bottom" title="Editar"
+                                                        className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { editarOS(o.os_id, i); setPrimeiroClique(true) }}>
+                                                        <FiEdit className='btComum' />
+                                                    </Button>
+                                                }
+                                                {o.os_status == "F" &&
+                                                    <Button data-toggle="tooltip" data-placement="bottom" title="Histórico de Pagamento"
+                                                        onClick={() => { historicoPagamento(o.os_id) }} className='m-0 p-0 px-1 border-0 bg-transparent btn-dark'>
+                                                        <MdTimeline style={{ color: '#231f20' }} />
+                                                    </Button>
+                                                }
+
+                                                {o.os_status == "O" &&
+                                                    <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                        onClick={() => { setO(o); setModalExcluir(true); }}
+                                                        className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                                                        <FiTrash className='btExcluir' />
+                                                    </Button>
+                                                }
+
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
             <>
-                <Modal size="lg" className="col-md-12" show={modal} onHide={() => { setModal(false) }}>
+                <Modal size="lg" className="col-md-12" show={modal} onHide={() => { setModal(false); setVisualizar(false); }}>
                     <Modal.Header className='' closeButton>
-                        <span style={{ letterSpacing: '0.05em' }} className='modal-title'>{orcamento ? "Orçamento" : "Ordem de Serviço"}<RiListSettingsLine style={{ color: '#231f20' }} /></span>
+                        <span style={{ letterSpacing: '0.05em' }} className='modal-title'>{visualizar && "Visualizar "}{orcamento ? "Orçamento" : "Ordem de Serviço"}<RiListSettingsLine style={{ color: '#231f20' }} /></span>
                     </Modal.Header>
                     <Modal.Body>
                         <div className='col-md-12 pb-2'>
@@ -737,12 +771,10 @@ function OS() {
                                 <div className="container">
                                     <div className='mb-2' style={{ fontWeight: 500 }}>Cliente</div>
                                     <div className="row secaoItensEstatico g-2" >
-                                        <Form.Input type="text" cols="col-md-6" id="nomeCliente" name="nomeCliente" placeholder="Ex: José Silva" label="Nome *" register={register}
-                                            value={nomeCliente} onChange={e => { setNomeCliente(e.target.value); setValue("nomeCliente", e.target.value); errors.nomeCliente && trigger('nomeCliente'); }} erro={errors.nomeCliente}
-                                            leitura={gravouCliente} />
-                                        <Form.Input type="text" cols="col-md-4" id="foneCliente" name="foneCliente" placeholder="181111-1111" label="Celular *" register={register}
-                                            value={foneCliente} onChange={e => { setFoneCliente(e.target.value); setValue("foneCliente", e.target.value); errors.foneCliente && trigger('foneCliente'); }} erro={errors.foneCliente}
-                                            leitura={gravouCliente} />
+                                        <Form.Input leitura={visualizar} type="text" cols="col-md-6" id="nomeCliente" name="nomeCliente" placeholder="Ex: José Silva" label="Nome *" register={register}
+                                            value={nomeCliente} onChange={e => { setNomeCliente(e.target.value); setValue("nomeCliente", e.target.value); errors.nomeCliente && trigger('nomeCliente'); }} erro={errors.nomeCliente} />
+                                        <Form.Input leitura={visualizar} type="text" cols="col-md-4" id="foneCliente" name="foneCliente" placeholder="181111-1111" label="Celular *" register={register}
+                                            value={foneCliente} onChange={e => { setFoneCliente(e.target.value); setValue("foneCliente", e.target.value); errors.foneCliente && trigger('foneCliente'); }} erro={errors.foneCliente} />
                                         <div className="col-md-2" style={{ display: 'flex', alignItems: (errors.nomeCliente == errors.foneCliente) ? 'end' : 'center' }}>
                                             <button type="button" style={{ fontSize: '0.8em', fontWeight: 'bold' }} className={(nomeCliente != "" && errors.nomeCliente == errors.foneCliente && foneCliente != "" && !gravouCliente) ? 'btn btn-dark m-0' : 'btn btn-dark m-0 disabled'} onClick={cadCliente}>
                                                 OK
@@ -752,7 +784,7 @@ function OS() {
                                 </div>
                                 :
                                 <>
-                                    <Select cols="col-md-12" id="cliId" label="Cliente *" register={register} value={cliId}
+                                    <Select leitura={visualizar} cols="col-md-12" id="cliId" label="Cliente *" register={register} value={cliId}
                                         onChange={e => { setValue("cliId", e.target.value); setCliId(e.target.value); errors.cliId && trigger('cliId'); }}
                                         erro={errors.cliId}>
                                         {clis.map((cli, i) => (
@@ -760,7 +792,7 @@ function OS() {
                                         ))}
                                     </Select>
 
-                                    <Select cols="col-md-6" id="veId" label="Veículos *" register={register} value={veId}
+                                    <Select leitura={visualizar} cols="col-md-6" id="veId" label="Veículos *" register={register} value={veId}
                                         onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); console.log("veId: " + veId); errors.veId && trigger('veId'); }}
                                         erro={errors.veId}>
                                         {
@@ -768,131 +800,154 @@ function OS() {
                                                 <option key={i} value={ve.ve_id}>{ve.ve_placa}</option>
                                             ))}
                                     </Select>
-                                    <Form.Input type="number" min="0" cols="col-md-6" id="km" name="km" placeholder="80.000 km" label="Kilometragem *" register={register}
+                                    <Form.Input leitura={visualizar} type="number" min="0" cols="col-md-6" id="km" name="km" placeholder="80.000 km" label="Kilometragem *" register={register}
                                         value={km} onChange={e => { setValue("km", e.target.value); setKm(e.target.value); errors.km && trigger('km'); }} erro={errors.km} />
                                 </>
                             }
+
                             <div className="container">
-                                <div className='mb-1' style={{ fontWeight: 500 }}>Serviços</div>
-                                <div className="row secaoItens g-1">
+                                {(!visualizar || serOS.length != 0) &&
+                                    <>
+                                        <div className='mb-1' style={{ fontWeight: 500 }}>Serviços</div>
+                                        <div className="row secaoItens g-1">
 
-                                    <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarServico() }}>
-                                        <BsPlusLg size={14} style={{ color: '#000' }} />
-                                    </Button>
-                                    <Select cols="col-md-6" id="serId" label="Nome" register={register} value={serId}
-                                        onChange={e => { setValue("serId", e.target.value); setSerId(e.target.value); errors.serId && trigger('serId'); }}
-                                        erro={errors.serId}>
-                                        {servicos.map((ser, i) => {
-                                            if (serOS.filter(sos => sos.id == ser.ser_id).length == 0)
-                                                return (<option key={i} value={ser.ser_id}>{ser.ser_nome}</option>)
-                                        })}
-                                    </Select>
-                                    <Form.Input type="number" min="0" cols="col-md-2" id="serQtde" name="serQtde" placeholder=""
-                                        label="Quantidade" register={register} value={serQtde} classes="form-control addArrow"
-                                        onChange={e => { setSerQtde(e.target.value); }} />
-                                    {/*<Form.Input type="number" min="0" cols="col-md-4" id="valor" name="valor" placeholder="R$150,00"
-                                        label="Valor (R$)" register={register} value={serVal}
-                                        onChange={e => { setValue("valor", e.target.value); setSerVal(e.target.value); errors.valor && trigger("valor"); }}
-                                    erro={errors.valor} />*/}
-                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="valor" name="valor" placeholder="R$150,00"
-                                        label="Valor (R$)" register={register} value={serVal}
-                                        onChange={e => {
-                                            if (e.target.value.includes("R$")) {
-                                                var val = e.target.value.split('R$')[1];
-                                                val = val.replace(",","")
-                                                val = val.replace(".","")
-                                                setValue("valor", val);
-                                                setSerVal(val);
+                                            <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { adicionarServico() }}>
+                                                <BsPlusLg size={14} style={{ color: '#000' }} />
+                                            </Button>
+                                            {!visualizar &&
+                                                <>
+                                                    <Select leitura={visualizar} cols="col-md-6" id="serId" label="Nome" register={register} value={serId}
+                                                        onChange={e => { setValue("serId", e.target.value); setSerId(e.target.value); errors.serId && trigger('serId'); }}
+                                                        erro={errors.serId}>
+                                                        {servicos.map((ser, i) => {
+                                                            if (serOS.filter(sos => sos.id == ser.ser_id).length == 0)
+                                                                return (<option key={i} value={ser.ser_id}>{ser.ser_nome}</option>)
+                                                        })}
+                                                    </Select>
+
+                                                    <Form.Input leitura={visualizar} type="number" min="0" cols="col-md-2" id="serQtde" name="serQtde" placeholder=""
+                                                        label="Qtde." register={register} value={serQtde} classes="form-control addArrow "
+                                                        onChange={e => { setSerQtde(e.target.value); }} />
+
+                                                    <Form.InputMoney leitura={visualizar} type="text" min="0" cols="col-md-4" id="valor" name="valor" placeholder="150.00"
+                                                        label="Valor (R$)" register={register} value={serVal}
+                                                        onChange={e => {
+                                                            setValue("valor", e.target.value);
+                                                            setSerVal(e.target.value);
+                                                            errors.valor && trigger("valor");
+                                                        }}
+                                                        erro={errors.valor} />
+                                                    <label className='mb-1'></label>
+                                                </>
                                             }
-                                            else {
-                                                setValue("valor", e.target.value);
-                                                setSerVal(e.target.value);
-                                            }
-                                            errors.valor && trigger("valor");
-                                        }}
-                                        erro={errors.valor} />
+                                            {serOS.map((sos, k) => (
+                                                <div className='row g-1'>
+                                                    <Select leitura={true} key={k} cols="col-md-6" id={sos.id} value={sos.id} classes="form-select-sm mb-0">
+                                                        <option selected key={k} value={sos.id}>{sos.nome}</option>
+                                                    </Select>
+                                                    <div className="col-md-2">
+                                                        <input disabled className="form-control form-control-sm addArrow" value={sos.qtde} />
+                                                    </div>
+                                                    <div className="col-md-3">
+                                                        <input disabled value={"R$" + aredondar(sos.valor)} className="form-control form-control-sm" />
+                                                    </div>
 
-                                    {serOS.map((sos, k) => (
-                                        <>
-                                            <SelectReadOnly key={k} cols="col-md-6" id={sos.id}>
-                                                <option selected key={k} value={sos.id}>{sos.nome}</option>
-                                            </SelectReadOnly>
-                                            <div className="col-md-2">
-                                                <label></label>
-                                                <input disabled className="form-control addArrow" value={sos.qtde} />
-                                            </div>
-                                            <div className="col-md-3">
-                                                <label></label>
-                                                <input disabled value={"R$" + sos.valor} className="form-control" />
-                                            </div>
-                                            <div className="col-md-1 btExcluirItem">
-                                                <Button onClick={() => excluirServico(sos.id)}
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash style={{ color: 'red' }} />
-                                                </Button>
-                                            </div>
-                                        </>
-                                    ))}
+                                                    {visualizar ?
+                                                        <div className="col-md-1 btExcluirItem">
+                                                            <Button disabled
+                                                                className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                                                                <FiTrash style={{ color: 'red' }} />
+                                                            </Button>
+                                                        </div>
+                                                        :
+                                                        <div className="col-md-1 btExcluirItem">
+                                                            <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                                onClick={() => excluirServico(sos.id)}
+                                                                className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                                                                <FiTrash style={{ color: 'red' }} />
+                                                            </Button>
+                                                        </div>
+                                                    }
+
+                                                </div>
+                                            ))}
 
 
-                                </div>
+                                        </div>
+                                    </>
+                                }
                             </div>
                             <div className="container">
-                                <div className='mb-1' style={{ fontWeight: 500 }}>Peças</div>
-                                <div className="row secaoItens g-1">
+                                {(!visualizar || pecOS.length != 0) &&
+                                    <>
+                                        <div className='mb-1' style={{ fontWeight: 500 }}>Peças</div>
+                                        <div className="row secaoItens g-1">
 
-                                    <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarPeca() }}>
-                                        <BsPlusLg size={14} style={{ color: '#000' }} />
-                                    </Button>
-                                    <Select cols="col-md-6" id="pecId" label="Nome" register={register} value={pecId}
-                                        onChange={e => { setPecId(e.target.value); }}>
-                                        {pecas.map((pec, i) => {
-                                            if (pecOS.filter(pos => pos.id == pec.pec_id).length == 0)
-                                                return (<option key={i} value={pec.pec_id}>{pec.pec_nome}</option>)
-                                        })}
-                                    </Select>
-                                    <Form.Input type="number" min="0" cols="col-md-2" id="pecQtde" name="pecQtde" placeholder=""
-                                        label="Quantidade" register={register} value={pecQtde}
-                                        onChange={e => { setPecQtde(e.target.value); }} />
-                                    {/*<Form.Input type="number" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder=""
-                                        label="Valor (R$)" register={register} value={pecVal}
-                                    onChange={e => { setPecVal(e.target.value); }} />*/}
-                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder=""
-                                        label="Valor (R$)" register={register} value={pecVal}
-                                        onChange={e => {
-                                            if (e.target.value.includes("R$")) {
-                                                var val = e.target.value.split('R$')[1];
-                                                val = val.replace(",","")
-                                                val = val.replace(".","")
-                                                setPecVal(val);
-                                            }
-                                            else {
-                                                setPecVal(e.target.value)
-                                            }
-                                        }} />
+                                            <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { adicionarPeca() }}>
+                                                <BsPlusLg size={14} style={{ color: '#000' }} />
+                                            </Button>
+                                            {!visualizar &&
+                                                <>
+                                                    <Select cols="col-md-6" id="pecId" label="Nome" register={register} value={pecId}
+                                                        onChange={e => { setPecId(e.target.value); }}>
+                                                        {pecas.map((pec, i) => {
+                                                            if (pecOS.filter(pos => pos.id == pec.pec_id).length == 0)
+                                                                return (<option key={i} value={pec.pec_id}>{pec.pec_nome}</option>)
+                                                        })}
+                                                    </Select>
+                                                    <Form.Input type="number" min="0" cols="col-md-2" id="pecQtde" name="pecQtde" placeholder=""
+                                                        label="Qtde." register={register} value={pecQtde}
+                                                        onChange={e => { setPecQtde(e.target.value); }} />
 
-                                    {pecOS.map((pos, k) => (
-                                        <>
-                                            <SelectReadOnly key={k} cols="col-md-6" id={pos.id}>
-                                                <option selected key={k} value={pos.id}>{pos.nome}</option>
-                                            </SelectReadOnly>
-                                            <div className="col-md-2">
-                                                <label></label>
-                                                <input disabled className="form-control" value={pos.qtde} />
-                                            </div>
-                                            <div className="col-md-3">
-                                                <label></label>
-                                                <input disabled value={"R$" + pos.valor} className="form-control" />
-                                            </div>
-                                            <div className="col-md-1 btExcluirItem">
-                                                <Button onClick={() => excluirPeca(pos.id)}
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash style={{ color: 'red' }} />
-                                                </Button>
-                                            </div>
-                                        </>
-                                    ))}
-                                </div>
+                                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="pecValor" name="pecValor" placeholder="150.00"
+                                                        label="Valor (R$)" register={register} value={pecVal}
+                                                        onChange={e => {
+                                                            if (e.target.value.includes("R$")) {
+                                                                var val = e.target.value.split('R$')[1];
+                                                                val = val.replace(",", "")
+                                                                val = val.replace(".", "")
+                                                                setPecVal(val);
+                                                            }
+                                                            else {
+                                                                setPecVal(e.target.value)
+                                                            }
+                                                        }} />
+                                                    <label className='mb-1'></label>
+                                                </>
+                                            }
+                                            {pecOS.map((pos, k) => (
+                                                <div className='row g-1'>
+                                                    <Select leitura={true} classes="form-select-sm mb-0" key={k} cols="col-md-6" id={pos.id} value={pos.id}>
+                                                        <option selected key={k} value={pos.id}>{pos.nome}</option>
+                                                    </Select>
+                                                    <div className="col-md-2">
+                                                        <input disabled className="form-control form-control-sm" value={pos.qtde} />
+                                                    </div>
+                                                    <div className="col-md-3">
+                                                        <input disabled value={"R$" + aredondar(pos.valor)} className="form-control form-control-sm" />
+                                                    </div>
+
+                                                    {visualizar ?
+                                                        <div className="col-md-1 btExcluirItem">
+                                                            <Button disabled
+                                                                className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                                                                <FiTrash style={{ color: 'red' }} />
+                                                            </Button>
+                                                        </div>
+                                                        :
+                                                        <div className="col-md-1 btExcluirItem">
+                                                            <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                                onClick={() => excluirPeca(pos.id)}
+                                                                className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                                                                <FiTrash style={{ color: 'red' }} />
+                                                            </Button>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                }
                             </div>
                             <div className='col-md-12'>
                                 <label><b style={{ color: 'red' }}>Total (R$):</b> <b>{calcTot()}</b></label>
@@ -903,17 +958,30 @@ function OS() {
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { limparCampos(); setModal(false); }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarOS(e)) }} >
-                            Confirmar
-                        </Button>
+                        {visualizar ?
+                            <>
+                                <Button variant="secondary" disabled>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" disabled>
+                                    Confirmar
+                                </Button>
+                            </>
+                            :
+                            <>
+                                <Button variant="secondary" onClick={() => { limparCampos(); setModal(false); }}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarOS(e)) }} >
+                                    Confirmar
+                                </Button>
+                            </>
+                        }
                     </Modal.Footer>
                 </Modal>
             </>
             <>
-                <Modal className="col-md-12" show={modalFechar} onHide={() => { setModalFechar(false) }}>
+                <Modal className="col-md-12" show={modalFechar} onHide={() => { setModalFechar(false); limparCamposFOS(); }}>
                     <Modal.Header className='modal-title' closeButton style={{ letterSpacing: '0.05em' }}>Fechar Ordem de Serviço <FiCheckCircle style={{ color: '#231f20' }} /></Modal.Header>
                     <Modal.Body>
                         <Form>
@@ -934,26 +1002,12 @@ function OS() {
                                         label="Kilometragem" value={kilometragem} />
                                 </div>
                             </div>
-                            {/*<Form.Input type="number" cols="col-md-6" id="valReceb" name="valReceb"
-                                label="Valor Recebido (R$)" value={valReceb}
-                                onChange={(e) => {
-                                    setValReceb(e.target.value); setValue("valReceb", e.target.value);
-                                    errors.valReceb && trigger('valReceb');
-                                }} erro={errors.valReceb} />*/}
                             <Form.InputMoney type="text" cols="col-md-6" id="valReceb" name="valReceb"
                                 label="Valor Recebido (R$)" value={valReceb}
                                 onChange={(e) => {
-                                    if (e.target.value.includes("R$")) {
-                                        var val = e.target.value.split("R$")[1];
-                                        val = val.replace(",", "")
-                                        val = val.replace(".", "")
-                                        setValReceb(val);
-                                        setValue("valReceb", val);
-                                    }
-                                    else {
-                                        setValReceb(e.target.value);
-                                        setValue("valReceb", e.target.value);
-                                    }
+                                    setValReceb(e.target.value);
+                                    setValue("valReceb", e.target.value);
+
                                     errors.valReceb && trigger('valReceb');
                                 }} erro={errors.valReceb} />
                             <label className='row'></label>
@@ -981,15 +1035,9 @@ function OS() {
                                 <div className="row secaoItensEstatico g-2" >
                                     {/*<Form.InputRO type="number" min="0" cols="col-md-6" id="valFiado" name="valFiado"
                                         label="Valor Fiado (R$)" value={valFiado} onChange={e => { setValFiado(e.target.value) }} />*/}
-                                    <Form.InputMoney type="text" min="0" cols="col-md-6" id="valFiado" name="valFiado"
+                                    <Form.InputMoney type="text" cols="col-md-6" id="valFiado" name="valFiado"
                                         label="Valor Fiado (R$)" value={valFiado}
                                         onChange={e => {
-                                            if (e.target.value.includes("R$")) {
-                                                var val = e.target.value.split("R$")[1];
-                                                val = val.replace(",","")
-                                                val = val.replace(".","")
-                                                setValFiado(val);
-                                            }
                                             setValFiado(e.target.value)
                                         }} />
                                     <Form.InputRO type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6" id="dataReceb" name="dataReceb"

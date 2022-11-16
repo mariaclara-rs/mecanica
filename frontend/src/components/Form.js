@@ -16,20 +16,20 @@ export function InputRO({ cols, id, label, ...inputprops }) {
         </div>
     )
 }
-export function Input({ cols, id, label, mascara, register, erro, leitura = false, classes="form-control",...inputprops }) {
+export function Input({ cols, id, label, mascara, register, erro, leitura = false, classes = "form-control", align="", ...inputprops }) {
     return (
-        <div className={cols}>
-            <label htmlFor={id}>{label}</label>
+        <div className={cols} align={align}>
+            <label htmlFor={id} >{label}</label>
             {(register && leitura) &&
                 <InputMask mask={mascara} maskChar="" className={classes} id={id} {...register(id)} {...inputprops} disabled />
             }
             {(register && !leitura) &&
-                <InputMask mask={mascara} maskChar="" className={classes} id={id} {...register(id)} {...inputprops}/>
+                <InputMask mask={mascara} maskChar="" className={classes} id={id} {...register(id)} {...inputprops} />
             }
             {(leitura && !register) &&
-                <InputMask mask={mascara} maskChar="" className={classes} id={id} {...inputprops} disabled/>
+                <InputMask mask={mascara} maskChar="" className={classes} id={id} {...inputprops} disabled />
             }
-            {(!leitura && !register) && 
+            {(!leitura && !register) &&
                 <InputMask mask={mascara} maskChar="" className={classes} id={id} {...inputprops} />
             }
             {erro && <p className="erroForm">{erro?.message}</p>}
@@ -38,7 +38,10 @@ export function Input({ cols, id, label, mascara, register, erro, leitura = fals
 
     )
 }
-export function MoneyInput({ cols, id, label, mascara, register, erro, leitura = false, classes="form-control",...inputprops }) {
+export function MoneyInput({ cols, id, label, mascara, register, erro, leitura = false, classes = "form-control", ...inputprops }) {
+    if(classes!="form-control"){
+        classes="form-control "+classes
+    }
     return (
         <div className={cols}>
             <label htmlFor={id}>{label}</label>
@@ -46,12 +49,12 @@ export function MoneyInput({ cols, id, label, mascara, register, erro, leitura =
                 <CurrencyInput className={classes} id={id} {...register(id)} {...inputprops} disabled />
             }
             {(register && !leitura) &&
-                <CurrencyInput className={classes} id={id} {...register(id)} {...inputprops}/>
+                <CurrencyInput className={classes} id={id} {...register(id)} {...inputprops} />
             }
             {(leitura && !register) &&
-                <CurrencyInput className={classes} id={id} {...inputprops} disabled/>
+                <CurrencyInput className={classes} id={id} {...inputprops} disabled />
             }
-            {(!leitura && !register) && 
+            {(!leitura && !register) &&
                 <CurrencyInput className={classes} id={id} {...inputprops} />
             }
             {erro && <p className="erroForm">{erro?.message}</p>}
@@ -64,7 +67,11 @@ export function InputArea(props) {
     return (
         <F.Group className="mb-3">
             <F.Label>{props.label}</F.Label>
-            <F.Control as="textarea" rows={3} {...props} />
+            {props.leitura ?
+                <F.Control disabled  as="textarea" rows={3} {...props} />
+                :
+                <F.Control as="textarea" rows={3} {...props} />
+            }
         </F.Group>
     )
 }

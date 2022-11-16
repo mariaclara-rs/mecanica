@@ -8,7 +8,7 @@ import apiCEP from '../../services/cep';
 import { Button, Modal } from 'react-bootstrap';
 import Sidebar from '../../components/Sidebar';
 import Form from '../../components/Form'
-import Search from '../../components/Search'
+import AreaSearch from '../../components/AreaSearch';
 import ModalExcluir from '../../components/ModalExcluir';
 
 import { set, useForm } from 'react-hook-form';
@@ -17,7 +17,7 @@ import InputMask from "react-input-mask";
 import * as yup from "yup";
 
 import { BiGroup } from "react-icons/bi";
-import { FiTrash, FiEdit } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiEye } from 'react-icons/fi';
 
 import BtSair from '../../components/BtSair';
 import ToastMessage from '../../components/ToastMessage';
@@ -48,15 +48,15 @@ function Cliente() {
   const [msgToast, setMsgToast] = useState("");
   const [tituloToast, setTituloToast] = useState("");
 
+  const [visualizar, setVisualizar] = useState(false);
+
   const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
   const schema = yup.object({
     nome: yup.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
     cpf: yup.string().length(14, "CPF deve ter 11 dígitos"),
-    tel: yup.string().min(8, "Informe um número válido").max(11, "Informe um número válido"),
-    cidade: yup.string().required("Preencha a cidade"),
-    endereco: yup.string().required("Preencha o endereço"),
-    email: yup.string().email("Informe um email válido").required("Informe o email")
+    tel: yup.string().length(14, "Informe um número válido"),
+    email: yup.string().email("Informe um email válido")
   }).required();
 
 
@@ -69,21 +69,22 @@ function Cliente() {
 
   }, []);
 
+
   async function carregarClientes() {
     const resp = await api.get('/clientes');
-    setCli(resp.data);
+    if (campoBusca.length > 0)
+      setCli(resp.data.filter(c => c.cli_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+    else
+      setCli(resp.data)
   }
 
 
   async function gravarCliente(e) {
-
     e.preventDefault();
-    //console.log("nome: " + nome + " telefone: " + tel + " cpf: " + cpf)
-    if (nome.length > 0 && cpf.length > 0 && tel.length > 0 && email.length > 0) {
-      if (errors.nome == undefined && errors.cpf == undefined && errors.tel == undefined && errors.email == undefined) {
+    if (nome.length > 0 && cpf.length > 0 && tel.length > 0) {
+      if (errors.nome == undefined && errors.cpf == undefined && errors.tel == undefined) {
         let resp;
         if (add) {
-          //console.log("cpf: " + cpf + "\nnome: " + nome + "\ncep:" + cep);
           resp = await api.post('/clientes/cadastrar', {
             cpf, nome, email,
             cep, endereco,
@@ -92,11 +93,16 @@ function Cliente() {
           });
 
           if (JSON.stringify(resp.data.status) == 'false') {
-            alerta('mensagemForm mensagemForm-Erro', 'Cliente já existente!');
+            alerta('mensagemForm mensagemForm-Erro', 'Erro. Não foi possível cadastrar o cliente!');
           }
           else {
             limparCampos();
-            alerta('mensagemForm mensagemForm-Sucesso', 'Cliente cadastrado!');
+            setToast(false);
+            setTituloToast("Cadastro")
+            setMsgToast("Cliente cadastrado com sucesso!");
+            setClasseToast('Success');
+            setToast(true);
+            setModal(false);
           }
         }
         else {
@@ -111,8 +117,13 @@ function Cliente() {
             alerta('mensagemForm mensagemForm-Erro', 'Erro ao tentar editar cliente!');
           }
           else {
-            alerta('mensagemForm mensagemForm-Sucesso', 'Dados atualizados!');
+            setToast(false);
+            setTituloToast("Edição")
+            setMsgToast("Dados atualizado com sucesso!");
+            setClasseToast('Success');
+            setToast(true);
             limparCampos();
+            setModal(false);
           }
         }
         carregarClientes();
@@ -133,9 +144,15 @@ function Cliente() {
     setModal(true);
   }
 
+  async function visualizarCliente(cli_id, i) {
+    carregarCampos(i);
+    setModal(true);
+  }
+
   async function excluirCliente() {
     const resp = await api.delete('/clientes/' + id);
     if (JSON.stringify(resp.data.status) == 'false') {
+      setToast(false);
       setTituloToast("Exclusão")
       setMsgToast("Erro. Não foi possível excluir o cliente");
       setClasseToast('Danger');
@@ -144,6 +161,7 @@ function Cliente() {
       setNomeTemp('');
     }
     else {
+      setToast(false);
       setTituloToast("Exclusão")
       setMsgToast("Cliente excluído");
       setClasseToast('Success');
@@ -189,22 +207,62 @@ function Cliente() {
     setAdd(true);
   }
   function carregarCampos(i) {
-    setCPF(cli[i].cli_cpf);
-    setNome(cli[i].cli_nome);
-    setCEP(cli[i].cli_cep);
-    setEndereco(cli[i].cli_endereco);
-    setTel(cli[i].cli_tel);
-    setNum(cli[i].cli_num);
-    setCidade(cli[i].cli_cidade);
-    setEmail(cli[i].cli_email)
-    setValue("cpf", cli[i].cli_cpf);
-    setValue("nome", cli[i].cli_nome);
-    setValue("cep", cli[i].cli_cep);
-    setValue("endereco", cli[i].cli_endereco);
-    setValue("tel", cli[i].cli_tel);
-    setValue("num", cli[i].cli_num);
-    setValue("cidade", cli[i].cli_cidade);
-    setValue("email", cli[i].cli_email)
+    if (cli[i].cli_cpf != null) {
+      setCPF(cli[i].cli_cpf);
+      setValue("cpf", cli[i].cli_cpf);
+    } else {
+      setCPF('');
+      setValue("cpf", '');
+    }
+    if (cli[i].cli_nome != null) {
+      setNome(cli[i].cli_nome);
+      setValue("nome", cli[i].cli_nome);
+    } else {
+      setNome('');
+      setValue("nome", '');
+    }
+    if (cli[i].cli_cep != null) {
+      setCEP(cli[i].cli_cep);
+      setValue("cep", cli[i].cli_cep);
+    } else {
+      setCEP('');
+      setValue("cep", '');
+    }
+    if (cli[i].cli_endereco != null) {
+      setEndereco(cli[i].cli_endereco);
+      setValue("endereco", cli[i].cli_endereco);
+    } else {
+      setEndereco('');
+      setValue("endereco", '');
+    }
+    if (cli[i].cli_tel != null) {
+      setTel(cli[i].cli_tel);
+      setValue("tel", cli[i].cli_tel);
+    } else {
+      setTel('');
+      setValue("tel", '');
+    }
+    if (cli[i].cli_num != null) {
+      setNum(cli[i].cli_num);
+      setValue("num", cli[i].cli_num);
+    } else {
+      setNum('');
+      setValue("num", '');
+    }
+    if (cli[i].cli_cidade != null) {
+      setCidade(cli[i].cli_cidade);
+      setValue("cidade", cli[i].cli_cidade);
+    } else {
+      setCidade('');
+      setValue("cidade", '');
+    }
+    if (cli[i].cli_email != null) {
+      setEmail(cli[i].cli_email)
+      setValue("email", cli[i].cli_email)
+    } else {
+      setEmail('')
+      setValue("email", '')
+    }
   }
 
 
@@ -249,48 +307,47 @@ function Cliente() {
             </button>
 
             {/*Campo de busca*/}
-            <div className="row mt-5 mb-3">
-              <div className="col-md-5">
-                <Search>
-                  <Search.Input placeholder="Busque por um cliente..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarCliente(); }} onBlur={buscarCliente} />
-                  <Search.Span onClick={() => { buscarCliente() }} />
-                </Search>
-              </div>
-            </div>
 
+            <AreaSearch placeholder="Busque por um cliente..."
+              value={campoBusca} onKeyUp={carregarClientes} onChange={(e) => setCampoBusca(e.target.value)} onClick={carregarClientes} />
 
-            <table className="table table-hover" style={{ overflow: 'auto' }} >
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Nome</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Telefone</th>
-                  <th scope="col">Endereço</th>
-                  <th scope="col">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cli.map((c, i) => (
-                  <tr key={i}>
-                    <th scope="row">{c.cli_id}</th>
-                    <td>{c.cli_nome}</td>
-                    <td>{c.cli_email}</td>
-                    <td>{c.cli_tel}</td>
-                    <td>{c.cli_endereco}</td>
-                    <td >
-                      <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { limparCampos(); clearErrors(); editarCliente(c.cli_id, i) }}>
-                        <FiEdit className='btEditar' />
-                      </Button>
-                      <Button
-                        className='m-0 p-0 px-1 border-0 bg-transparent'>
-                        <FiTrash className='btExcluir' onClick={() => { setId(c.cli_id); setNomeTemp(c.cli_nome); setModalExcluir(true) }} />
-                      </Button>
-                    </td>
+            <div style={{ overflowY: 'auto', height: '22em' }}>
+              <table className="table table-hover"  >
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col">Endereço</th>
+                    <th scope="col">Ação</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cli.map((c, i) => (
+                    <tr key={i}>
+                      <th scope="col">{c.cli_id}</th>
+                      <td>{c.cli_nome}</td>
+                      <td>{c.cli_email}</td>
+                      <td>{c.cli_tel}</td>
+                      <td>{c.cli_endereco}</td>
+                      <td >
+                        <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { setVisualizar(true); visualizarCliente(c.cli_id, i); }}>
+                          <FiEye className='btComum' />
+                        </Button>
+                        <Button data-toggle="tooltip" data-placement="bottom" title="Editar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { limparCampos(); clearErrors(); editarCliente(c.cli_id, i) }}>
+                          <FiEdit className='btComum' />
+                        </Button>
+                        <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                          className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
+                          <FiTrash className='btExcluir' onClick={() => { setId(c.cli_id); setNomeTemp(c.cli_nome); setModalExcluir(true) }} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
           </div>
 
@@ -299,42 +356,46 @@ function Cliente() {
       </div>
 
       <React.Fragment>
-        <Modal className="col-6" show={modal} onHide={() => { setModal(false) }}>
-          <Modal.Header className='modal-title' closeButton >{add ? "Cadastro de Cliente" : "Editar Cliente"}</Modal.Header>
+        <Modal className="col-6" show={modal} onHide={() => { setModal(false); setVisualizar(false); clearErrors(); }}>
+          <Modal.Header className='modal-title' closeButton >
+            {
+              visualizar ? "Visualizar Cliente" : add ? "Cadastro de Cliente" : "Editar Cliente"
+            }
+          </Modal.Header>
           <Modal.Body>
             <Form>
-              <Form.Input type="text" cols="col-md-12" id="nome" name="nome" placeholder="Ex: José Silva" label="Nome do Cliente *" register={register}
+              <Form.Input leitura={visualizar} type="text" cols="col-md-12" id="nome" name="nome" placeholder="Ex: José Silva" label="Nome do Cliente *" register={register}
                 value={nome} onChange={e => { setNome(e.target.value); setValue("nome", e.target.value); errors.nome && trigger('nome'); }} erro={errors.nome} />
-              <Form.Input type="text" cols="col-md-12" id="email" name="email" placeholder="Ex: josesilva@example.com" label="Email *" register={register}
+              <Form.Input leitura={visualizar} type="text" cols="col-md-12" id="email" name="email" placeholder="Ex: josesilva@example.com" label="Email" register={register}
                 value={email} onChange={e => { setEmail(e.target.value); setValue("email", e.target.value); errors.email && trigger('email'); }} erro={errors.email} />
 
-              {add
-                ? <Form.Input mascara="999.999.999-99" type="text" cols="col-md-6" id="cpf" name="cpf" placeholder="111.111.111-11" label="CPF *"
-                  register={register} value={cpf} onChange={e => { setCPF(e.target.value); setValue("cpf", e.target.value); errors.cpf && trigger('cpf') }} erro={errors.cpf} />
-                :
-                <Form.Input readOnly mascara="999.999.999-99" type="text" cols="col-md-6" id="cpf" name="cpf" placeholder="111.111.111-11" label="CPF *"
-                  register={register} value={cpf} onChange={e => { setCPF(e.target.value); setValue("cpf", e.target.value); errors.cpf && trigger('cpf') }} erro={errors.cpf} />
-              }
+              <Form.Input leitura={visualizar} mascara="999.999.999-99" type="text" cols="col-md-6" id="cpf" name="cpf" placeholder="111.111.111-11" label="CPF *"
+                register={register} value={cpf} onChange={e => { setCPF(e.target.value); setValue("cpf", e.target.value); errors.cpf && trigger('cpf') }} erro={errors.cpf} />
 
-
-              <Form.Input type="number" cols="col-md-6" id="tel" name="tel" placeholder="..." label="Telefone *" register={register}
+              <Form.Input leitura={visualizar} mascara="(99)99999-9999" type="text" cols="col-md-6" id="tel" name="tel" placeholder="..." label="Celular *" register={register}
                 value={tel} onChange={e => { setTel(e.target.value); setValue("tel", e.target.value); errors.tel && trigger('tel'); }} erro={errors.tel} />
 
 
               <div className="col-md-6">
                 <label htmlFor="cep">CEP</label>
-                <InputMask mask="99999-999" maskChar="" type="text" id="cep" name="cep" placeholder="11111-11" className="form-control" {...register("cep")}
-                  value={cep} onChange={e => { setCEP(e.target.value); setValue("cep", e.target.value); errors.cep && trigger('cep') }} onBlur={verificaCep} />
+                {visualizar ?
+                  <InputMask disabled aria-disabled mask="99999-999" maskChar="" type="text" id="cep" name="cep" placeholder="11111-11" className="form-control" {...register("cep")}
+                    value={cep} onChange={e => { setCEP(e.target.value); setValue("cep", e.target.value); errors.cep && trigger('cep') }} onBlur={verificaCep} />
+                  :
+                  <InputMask aria-disabled mask="99999-999" maskChar="" type="text" id="cep" name="cep" placeholder="11111-11" className="form-control" {...register("cep")}
+                    value={cep} onChange={e => { setCEP(e.target.value); setValue("cep", e.target.value); errors.cep && trigger('cep') }} onBlur={verificaCep} />
+                }
                 {errors.cep && <p className="erroForm">{errors.cep?.message}</p>}
+
               </div>
 
-              <Form.Input type="text" cols="col-md-6" id="cidade" name="cidade" placeholder="..." label="Cidade" register={register}
+              <Form.Input leitura={visualizar} type="text" cols="col-md-6" id="cidade" name="cidade" placeholder="..." label="Cidade" register={register}
                 value={cidade} onChange={e => { setCidade(e.target.value); setValue("cidade", e.target.value); errors.cidade && trigger('cidade') }} erro={errors.cidade} />
 
-              <Form.Input type="text" cols="col-md-9" id="endereco" name="endereco" placeholder="..." label="Endereco" register={register}
+              <Form.Input leitura={visualizar} type="text" cols="col-md-9" id="endereco" name="endereco" placeholder="..." label="Endereco" register={register}
                 value={endereco} onChange={e => { setEndereco(e.target.value); setValue("endereco", e.target.value); errors.endereco && trigger('endereco') }} erro={errors.endereco} />
 
-              <Form.Input type="number" cols="col-md-3" id="num" name="num" placeholder="..." label="Nº"
+              <Form.Input leitura={visualizar} type="number" cols="col-md-3" id="num" name="num" placeholder="..." label="Nº"
                 value={num} onChange={e => setNum(e.target.value)} register={register} />
             </Form>
 
@@ -342,12 +403,26 @@ function Cliente() {
 
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => { setModal(false); limparCampos() }}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarCliente(e)) }} >
-              Confirmar
-            </Button>
+            {visualizar ?
+              <>
+                <Button disabled variant="secondary">
+                  Cancelar
+                </Button>
+                <Button disabled type="submit" variant="primary" >
+                  Confirmar
+                </Button>
+              </>
+              :
+              <>
+                <Button variant="secondary" onClick={() => { setModal(false); limparCampos() }}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarCliente(e)) }} >
+                  Confirmar
+                </Button>
+              </>
+            }
+
           </Modal.Footer>
         </Modal>
       </React.Fragment>

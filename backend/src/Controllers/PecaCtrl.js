@@ -3,7 +3,7 @@ const db = require('../models/Database')
 module.exports = {
     async listar (request, response){
         const con = await db.conecta();
-        const sql = "SELECT * FROM peca ORDER BY pec_nome";
+        const sql = "SELECT * FROM peca ORDER BY pec_id";
         const peca = await db.consulta(sql);
         return response.json(peca.data);
     },

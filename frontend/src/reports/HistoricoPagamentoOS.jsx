@@ -1,3 +1,4 @@
+import { text } from '@fortawesome/fontawesome-svg-core';
 import pdfMake, { fonts } from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 
@@ -85,10 +86,21 @@ function fechamento(ordemservico) {
     }
 }
 
-function HistoricoPagamentoOS(ordemservico, contareceber) {
+function HistoricoPagamentoOS(ordemservico, contareceber,mecanica) {
     pdfMake.vfs = pdfFonts.pdfMake.vfs;
-    console.log("os: \n" + JSON.stringify(ordemservico))
-    console.log("contareceber: \n" + JSON.stringify(contareceber))
+    let textFooter = "";
+    if (mecanica != null) {
+        if(mecanica.mec_nome!="")   
+            textFooter+=mecanica.mec_nome+"\n";
+        if(mecanica.mec_endereco!="")
+            textFooter+=mecanica.mec_endereco+", ";
+        if(mecanica.mec_num!="")
+            textFooter+=mecanica.mec_num+" - ";
+        if(mecanica.mec_bairro!="")
+            textFooter+=mecanica.mec_bairro;
+        if(mecanica.mec_cidade!="")
+            textFooter+="\n"+mecanica.mec_cidade
+    }
 
     const contasgeradas = contareceber.map((cr) => {
         var cg = [
@@ -181,7 +193,7 @@ function HistoricoPagamentoOS(ordemservico, contareceber) {
             columns: [
                 {
                     alignment: 'center',
-                    text: 'Auto Mecânica Valter\nAv. Ana Jacinta, 2652 - Núcleo Bartolomeu B. de Miranda\nPresidente Prudente - SP',
+                    text: textFooter,
                     color: 'gray'
                 }
             ],

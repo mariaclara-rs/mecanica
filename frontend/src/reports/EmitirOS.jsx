@@ -3,20 +3,19 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 import NavbarCollapse from 'react-bootstrap/esm/NavbarCollapse';
 import { IoMdGrid } from 'react-icons/io';
 
-
 function totalServicos(servicos){
     var soma=0;
     servicos.map((ser)=>{
         soma+=ser.serOS_val;
     })
-    return soma;
+    return aredondar(soma);
 }
 function totalPecas(pecas){
     var soma=0;
     pecas.map((pec)=>{
         soma+=pec.pecOS_valTot;
     })
-    return soma;
+    return aredondar(soma);
 }
 function formatarData(data){
     data = (data.split('T')[0]).split('-');
@@ -26,6 +25,9 @@ function situacao(status){
     if(status=='A')
         return {text: "Em aberta", color:'red',width:'auto'};
     return {text:"Encerrada", color:'green',width:'auto'};
+}
+function aredondar(val){
+    return Math.round(val * 100) / 100
 }
 function fechamento(ordemservico){
     if(ordemservico.os_dataFechamento!=null){
@@ -50,8 +52,8 @@ function fechamento(ordemservico){
                     [{text: 'Método de Recebimento:', style: 'header'}, metodoRecebimento(ordemservico.os_metodoReceb),
                      {text: 'Quantidade de Parcelas', style: 'header'},ordemservico.os_qtdeParcelas],
                     
-                    [{text: 'Valor Recebido:',style:'header'}, ordemservico.os_valTot-ordemservico.os_valFiado,
-                     {text: 'Valor fiado:',style:'header'}, ordemservico.os_valFiado]
+                    [{text: 'Valor Recebido:',style:'header'}, aredondar(ordemservico.os_valTot-ordemservico.os_valFiado),
+                     {text: 'Valor fiado:',style:'header'}, aredondar(ordemservico.os_valFiado)]
                 ]
             },
             margin: [0,10,0,10] 
@@ -87,21 +89,37 @@ function ffooter(){
         padding: [5,5,5,50]
     }];
 }
-function EmitirOS(ordemservico, servicos, pecas){
+function EmitirOS(ordemservico, servicos, pecas,mecanica){
     pdfMake.vfs = pdfFonts.pdfMake.vfs;
+    console.log("mecan : "+JSON.stringify(mecanica))
+    let textFooter = "";
+    if (mecanica != null) {
+        if(mecanica.mec_nome!="")   
+            textFooter+=mecanica.mec_nome+"\n";
+        if(mecanica.mec_endereco!="")
+            textFooter+=mecanica.mec_endereco+", ";
+        if(mecanica.mec_num!="")
+            textFooter+=mecanica.mec_num+" - ";
+        if(mecanica.mec_bairro!="")
+            textFooter+=mecanica.mec_bairro;
+        if(mecanica.mec_cidade!="")
+            textFooter+="\n"+mecanica.mec_cidade
+    }
 
     const dataservicos = servicos.map((s)=>{
         return [
             {text: s.ser_nome},
-            {text: s.serOS_val}
+            {text: s.serOS_qtde},
+            {text: aredondar(s.serOS_val/s.serOS_qtde)},
+            {text: aredondar(s.serOS_val)}
         ]
     });
     const datapecas = pecas.map((p)=>{
         return [
             {text: p.pec_nome},
             {text: p.pecOS_qtde},
-            {text: (p.pecOS_valTot/p.pecOS_qtde)},
-            {text: p.pecOS_valTot}
+            {text: aredondar(p.pecOS_valTot/p.pecOS_qtde)},
+            {text: aredondar(p.pecOS_valTot)}
         ]
     })
     const header = [{
@@ -155,9 +173,9 @@ function EmitirOS(ordemservico, servicos, pecas){
         {text:'Serviços', style:'header'},
         {
             table:{
-                widths: ['*', '*'],
+                widths: ['*', '*','*','*'],
                 body: [
-                    ['Nome','Valor (R$)'],
+                    ['Nome','Quantidade','Valor Unitário (R$)','Valor Total (R$)'],
                     ...dataservicos
                 ]
             }
@@ -177,7 +195,7 @@ function EmitirOS(ordemservico, servicos, pecas){
             table:{
                 widths: ['*','*','*','*'],
                 body: [
-                    ['Nome','Quantidade','Valor Unitário','Valor Total'],
+                    ['Nome','Quantidade','Valor Unitário (R$)','Valor Total (R$)'],
                     ...datapecas
                 ]
             }
@@ -196,7 +214,7 @@ function EmitirOS(ordemservico, servicos, pecas){
 			columns: [
 				{
                     width: 'auto',
-					text: 'Valor Total da O.S.:',
+					text: 'Valor Total da O.S. (R$):',
                     style: 'header'
                 },
 				{
@@ -222,18 +240,14 @@ function EmitirOS(ordemservico, servicos, pecas){
         }],
         content: [content],
         images: {
-            mySuperImage: 'data:image/jpeg;base64,...content...',
-        
-            // in browser is supported loading images via url (https or http protocol) (minimal version: 0.1.67)
             snow: 'https://media.istockphoto.com/vectors/wrench-and-screwdriver-tools-drawing-vector-id492669132?k=20&m=492669132&s=170667a&w=0&h=00tAGt_sHXbpdWtYPKy2cG_dK7LpMxB2azYh9eAYkhk='
-        
           },
 
         footer: {
             columns: [ 
                 { 
                     alignment: 'center',
-                    text: 'Auto Mecânica Valter\nAv. Ana Jacinta, 2652 - Núcleo Bartolomeu B. de Miranda\nPresidente Prudente - SP',
+                    text: textFooter,
                     color: 'gray'
                 }
             ],

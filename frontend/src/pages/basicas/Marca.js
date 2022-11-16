@@ -9,18 +9,19 @@ import Sidebar from '../../components/Sidebar';
 import Form from '../../components/Form'
 import Search from '../../components/Search'
 import ModalExcluir from '../../components/ModalExcluir';
-
+import AreaSearch from '../../components/AreaSearch';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
 import { BiGlobe } from "react-icons/bi"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FiTrash, FiEdit } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiEye } from 'react-icons/fi';
 
 import BtSair from '../../components/BtSair';
 
 import ToastMessage from '../../components/ToastMessage';
+
 
 function Marca() {
 
@@ -41,6 +42,7 @@ function Marca() {
     const [msgToast, setMsgToast] = useState("");
     const [tituloToast, setTituloToast] = useState("");
 
+    const [visualizar, setVisualizar] = useState(false);
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
@@ -56,7 +58,10 @@ function Marca() {
 
     async function carregarMarcas() {
         const resp = await api.get('/marcas');
-        setMarcas(resp.data);
+        if (campoBusca.length > 0)
+            setMarcas(resp.data.filter(m => m.mc_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+        else
+            setMarcas(resp.data);
     }
 
     async function gravarMarca(e) {
@@ -73,7 +78,12 @@ function Marca() {
                     }
                     else {
                         limparCampos();
-                        alerta('mensagemForm mensagemForm-Sucesso', 'Marca cadastrado!');
+                        setToast(false);
+                        setTituloToast("Cadastro")
+                        setMsgToast("Marca cadastrada com sucesso!");
+                        setClasseToast('Success');
+                        setToast(true);
+                        setModal(false);
                     }
                 }
                 else {
@@ -86,7 +96,12 @@ function Marca() {
                     }
                     else {
                         limparCampos();
-                        alerta('mensagemForm mensagemForm-Sucesso', 'Dados atualizados!');
+                        setToast(false);
+                        setTituloToast("Edição")
+                        setMsgToast("Dados atualizados com sucesso!");
+                        setClasseToast('Success');
+                        setToast(true);
+                        setModal(false);
                     }
                 }
                 carregarMarcas();
@@ -103,6 +118,7 @@ function Marca() {
     async function excluirMarca() {
         const resp = await api.delete('/marcas/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Erro. Não foi possível excluir a marca");
             setClasseToast('Danger');
@@ -111,6 +127,7 @@ function Marca() {
             setMarcaTemp('');
         }
         else {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Marca excluída");
             setClasseToast('Success');
@@ -128,6 +145,12 @@ function Marca() {
         setModal(true);
     }
 
+    async function visualizarMarca(mc_id, i) {
+        setVisualizar(true);
+        carregarCampos(i);
+        setModal(true);
+    }
+
     function limparCampos() {
         setNome('');
         setValue("nome", "");
@@ -137,24 +160,6 @@ function Marca() {
         setNome(marcas[i].mc_nome);
         setValue("nome", marcas[i].mc_nome);
     }
-
-    async function buscarMarca() {
-        let resp;
-        let params;
-        if (campoBusca != '') {
-            params = {
-                nome: campoBusca
-            };
-            resp = await api.get('/marcas/nome', {
-                params
-            })
-            setMarcas(resp.data.data);
-        }
-        else {
-            carregarMarcas();
-        }
-    }
-
 
     return (
         <React.Fragment>
@@ -172,15 +177,9 @@ function Marca() {
                             Adicionar + <FontAwesomeIcon icon="fa-light fa-building-circle-arrow-right" />
                         </button>
                         {/*Campo de busca*/}
-                        <div className="row mt-5 mb-3">
-                            <div className="col-md-5">
-                                <Search>
-                                    <Search.Input placeholder="Busque por peças..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarMarca(); }} />
-                                    <Search.Span onClick={() => buscarMarca()} />
-                                </Search>
-                            </div>
-                        </div>
-                        <div className="col-md-10">
+                        <AreaSearch placeholder="Busque por uma distribuidora..."
+                            value={campoBusca} onKeyUp={carregarMarcas} onChange={(e) => setCampoBusca(e.target.value)} onClick={carregarMarcas} />
+                        <div className="col-md-10 scrollYTable">
                             <table className="table table-hover" style={{ overflow: 'auto' }} >
                                 <thead>
                                     <tr>
@@ -195,11 +194,16 @@ function Marca() {
                                             <th scope="row">{m.mc_id}</th>
                                             <td>{m.mc_nome}</td>
                                             <td >
-                                                <Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiEdit className='btEditar' onClick={() => { clearErrors(); limparCampos(); editarMarca(m.mc_id, i) }} />
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { visualizarMarca(m.mc_id, i); }}>
+                                                    <FiEye className='btComum' />
                                                 </Button>
-                                                <Button
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Editar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark'>
+                                                    <FiEdit className='btComum' onClick={() => { clearErrors(); limparCampos(); editarMarca(m.mc_id, i) }} />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-danger'>
                                                     <FiTrash className='btExcluir' onClick={() => { setId(m.mc_id); setMarcaTemp(m.mc_nome); setModalExcluir(true); }} />
                                                 </Button>
                                             </td>
@@ -213,11 +217,11 @@ function Marca() {
                 </div>
             </div>
             <React.Fragment>
-                <Modal className="col-6" show={modal} onHide={() => { setModal(false) }}>
-                    <Modal.Header className='modal-title' closeButton >{add ? "Cadastro de Marca" : "Editar Marca"}</Modal.Header>
+                <Modal className="col-6" show={modal} onHide={() => { setModal(false); setVisualizar(false); }}>
+                    <Modal.Header className='modal-title' closeButton >{visualizar ? "Visualizar marca" : add ? "Cadastro de marca" : "Editar marca"}</Modal.Header>
                     <Modal.Body>
                         <Form onSubmit={gravarMarca}>
-                            <Form.Input cols="col-md-12" id="nome" name="nome" placeholder="Ex: Mercedes-Benz" label="Marca"
+                            <Form.Input leitura={visualizar} cols="col-md-12" id="nome" name="nome" placeholder="Ex: Mercedes-Benz" label="Marca"
                                 register={register} value={nome} onChange={e => { setNome(e.target.value); setValue("nome", e.target.value); errors.nome && trigger('nome'); }}
                                 erro={errors.nome} />
 
@@ -225,12 +229,25 @@ function Marca() {
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { setModal(false); limparCampos(); }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarMarca(e)) }} >
-                            Confirmar
-                        </Button>
+                        {visualizar ?
+                            <>
+                                <Button variant="secondary" disabled>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" disabled>
+                                    Confirmar
+                                </Button>
+                            </>
+                            :
+                            <>
+                                <Button variant="secondary" onClick={() => { setModal(false); limparCampos(); }}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarMarca(e)) }} >
+                                    Confirmar
+                                </Button>
+                            </>
+                        }
                     </Modal.Footer>
                 </Modal>
             </React.Fragment>

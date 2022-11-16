@@ -20,6 +20,10 @@ import { FiTrash, FiEdit, FiCheckCircle, FiFilter } from 'react-icons/fi';
 import { BiMoney } from 'react-icons/bi';
 import BtSair from '../../components/BtSair';
 
+import Dropdown from 'react-bootstrap/Dropdown';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+
+import EmitirClientesInadimplentes from '../../reports/EmitirClienteInadimplentes';
 
 function ContaReceber() {
     const [cr, setCR] = useState([])
@@ -44,6 +48,8 @@ function ContaReceber() {
     const [filtro, setFiltro] = useState("T");
     const [campoBusca, setCampoBusca] = useState("");
 
+    const [rel, setRel] = useState("");
+
     const schema = yup.object({
         valReceb: yup.string().required("Informe o valor"),
         dtReceb: yup.string().required("Informe a data"),
@@ -55,17 +61,31 @@ function ContaReceber() {
     });
 
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, toastComponent, logout } = useContext(UtilsContext)
+    const { mecanica, carregarDadosMecanica, setMecanica } = useContext(DadosContext)
 
     useEffect(() => {
         carregarCR();
     }, []);
     useEffect(() => {
-        setValRest(divRest - valReceb);
+        if (divRest > valReceb)
+            setValRest(divRest - valReceb);
+        else
+            setValRest(0)
     }, [valReceb]);
 
     useEffect(() => {
         console.log("filtro: " + filtro)
     }, [filtro])
+
+    useEffect(async () => {
+        if (rel == "CI") {
+            const resp = await api.get('/clientesinadimplentes')
+            carregarDadosMecanica().then((respmec)=>{
+                setMecanica(respmec)
+                EmitirClientesInadimplentes(resp.data);
+            });
+        }
+    }, [rel]);
 
     async function carregarCR() {
         const resp = await api.get('/contareceber');
@@ -167,6 +187,9 @@ function ContaReceber() {
                         <BtSair onClick={logout} />
                         <div className="line"></div>
                         {/*<BtAdicionar />*/}
+                        <DropdownButton variant="light" title="Emitir Relatório">
+                            <Dropdown.Item onClick={()=>setRel("CI")}>Clientes Inadimplentes</Dropdown.Item>
+                        </DropdownButton>
                         <AreaSearch placeholder="Digite aqui..." value={campoBusca} onKeyUp={carregarCR} onChange={(e) => setCampoBusca(e.target.value)}>
                             <div className="row col-md-5">
                                 <div className="col-md-1" style={{ padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'end' }}>
@@ -183,51 +206,47 @@ function ContaReceber() {
                                 </div>
                             </div>
                         </AreaSearch>
-
-                        <table className="table table-hover" style={{ overflow: 'auto' }} >
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Ordem de Serviço</th>
-                                    <th scope="col">Cliente</th>
-                                    <th scope="col">Veículo</th>
-                                    <th scope="col">Valor</th>
-                                    <th scope="col">Data de Vencimento</th>
-                                    <th scope="col">Observações</th>
-                                    <th scope="col">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cr.map((c, i) => (
-                                    (filtro == "T" || filtro == "Cliente" || (filtro == "CA" && c.cr_dtReceb == null) || (filtro == "CQ" && c.cr_dtReceb != null)) &&
-                                    <tr key={i}>
-                                        <th scope="row">{c.cr_id}</th>
-                                        <td>{c.os_id}</td>
-                                        <td>{c.cli_nome}</td>
-                                        <td>{c.ve_placa}</td>
-                                        <td>{c.cr_valor}</td>
-                                        <td>{formatarData(c.cr_dtVenc.split('T')[0])}</td>
-                                        <td>{c.os_observacoes.substring(0, 30)}{(c.os_observacoes).length > 30 && "..."}</td>
-                                        <td>
-                                            {
-                                                c.cr_dtReceb == null &&
-                                                <Button data-toggle="tooltip" data-placement="bottom" title="Quitar"
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent' >
-                                                    <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { quitar(c, i); setModalQuitar(true); }} />
-                                                </Button>
-                                            }
-                                            {/*<Button className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                <FiEdit style={{ color: '#231f20' }} />
-                                            </Button>-->*/}
-                                            {/*<Button
-                                                    className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                    <FiTrash style={{ color: '#231f20' }} />
-                                            </Button>*/}
-                                        </td>
+                        <div className="scrollYTable">
+                            <table className="table table-hover" style={{ overflow: 'auto' }} >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">O.S.</th>
+                                        <th scope="col">Cliente</th>
+                                        <th scope="col">Veículo</th>
+                                        <th scope="col">Valor (R$)</th>
+                                        <th scope="col">Valor recebido (R$)</th>
+                                        <th scope="col">Vencimento</th>
+                                        <th scope="col">Observações</th>
+                                        <th scope="col">Ação</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {cr.map((c, i) => (
+                                        (filtro == "T" || filtro == "Cliente" || (filtro == "CA" && c.cr_dtReceb == null) || (filtro == "CQ" && c.cr_dtReceb != null)) &&
+                                        <tr key={i}>
+                                            <th scope="row">{c.cr_id}</th>
+                                            <td>{c.os_id}</td>
+                                            <td>{c.cli_nome}</td>
+                                            <td>{c.ve_placa}</td>
+                                            <td>{c.cr_valor}</td>
+                                            <td>{c.cr_valorReceb != null ? c.cr_valorReceb : 0}</td>
+                                            <td>{formatarData(c.cr_dtVenc.split('T')[0])}</td>
+                                            <td>{c.os_observacoes.substring(0, 30)}{(c.os_observacoes).length > 30 && "..."}</td>
+                                            <td>
+                                                {
+                                                    c.cr_dtReceb == null &&
+                                                    <Button data-toggle="tooltip" data-placement="bottom" title="Quitar"
+                                                        className='m-0 p-0 px-1 border-0 bg-transparent' >
+                                                        <FiCheckCircle style={{ color: '#231f20' }} onClick={() => { quitar(c, i); setModalQuitar(true); }} />
+                                                    </Button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -252,13 +271,6 @@ function ContaReceber() {
                                         label="Dívida Restante (R$)" value={divRest} />
                                 </div>
                             </div>
-                            {/*<Form.Input type="number" cols="col-md-6" id="valReceb" name="valReceb"
-                                label="Valor Recebido (R$)" value={valReceb}
-                                onChange={(e) => {
-                                    setValReceb(e.target.value); setValue("valReceb", e.target.value);
-                                    errors.valReceb && trigger('valReceb');
-                                }}
-                                register={register} erro={errors.valReceb} />*/}
                             <Form.InputMoney type="text" cols="col-md-6" id="valReceb" name="valReceb"
                                 label="Valor Recebido (R$)" value={valReceb}
                                 onChange={(e) => {
@@ -304,14 +316,7 @@ function ContaReceber() {
                                     <Form.InputMoney type="text" cols="col-md-6" id="valRest" name="valRest"
                                         label="Valor Restante (R$)" value={valRest}
                                         onChange={(e) => {
-                                            if (e.target.value.includes("R$")) {
-                                                var val = e.target.value.split("R$")[1];
-                                                val = val.replace(",","");
-                                                val = val.replace(".","");
-                                                setValRest(val);
-                                            }
-                                            else
-                                                setValRest(e.target.value)
+                                            setValRest(e.target.value)
                                         }} />
                                     <Form.Input type="date" cols="col-md-6"
                                         id="dtProxReceb" name="dtProxReceb" label="Próximo Recebimento" value={dtProxReceb}

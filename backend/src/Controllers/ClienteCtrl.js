@@ -6,14 +6,14 @@ const db = require('../models/Database')
 module.exports = {
     async listar (request, response){
         const con = await db.conecta();
-        const sql = "SELECT * FROM cliente ORDER BY cli_nome";
+        const sql = "SELECT * FROM cliente ORDER BY cli_id";
         const cli = await db.consulta(sql);
         return response.json(cli.data);
 
     },
     async gravar(request, response){
         const {cpf,nome,email,cep,endereco,tel,num,cidade} = request.body;
-        //console.log("gravar\ncpf: "+cpf+"\nnome: "+nome);
+        console.log("gravar\ncpf: "+cpf);
         const sql = "INSERT INTO cliente (cli_cpf, cli_nome, cli_email, cli_cep, cli_endereco, cli_tel, cli_num, cli_cidade) " +
             "VALUES (?,?,?,?,?,?,?,?)";
         const valores = [
@@ -25,10 +25,10 @@ module.exports = {
     },
     async editar(request, response){
         const {id,cpf,nome,email,cep,endereco,tel,num,cidade} = request.body;
-        const sql = "UPDATE cliente SET cli_nome = ?, cli_email = ?, cli_cep = ?, cli_endereco = ?, cli_tel = ?, cli_num = ?, cli_cidade = ? "+ 
+        const sql = "UPDATE cliente SET cli_nome = ?, cli_email = ?, cli_cep = ?, cli_endereco = ?, cli_tel = ?, cli_num = ?, cli_cidade = ?, cli_cpf=? "+ 
             "where cli_id = ?";
         const valores = [
-            nome, email, cep, endereco, tel, num, cidade, id
+            nome, email, cep, endereco, tel, num, cidade, cpf, id
         ];
         await db.conecta();
         const result = await db.manipula(sql, valores);

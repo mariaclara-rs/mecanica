@@ -19,7 +19,7 @@ import { DadosContext } from '../../context/DadosContext';
 import { UtilsContext } from '../../context/UtilsContext';
 
 import { BsClockHistory } from 'react-icons/bs'
-import { FiTrash, FiEdit } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiEye } from 'react-icons/fi';
 import { HiOutlineMail } from 'react-icons/hi';
 import { VscSettingsGear } from 'react-icons/vsc'
 import { BsEnvelopeOpen, BsGear } from 'react-icons/bs'
@@ -67,6 +67,7 @@ function Agendamentos() {
     const [filtro, setFiltro] = useState("");
 
     const [pos, setPos] = useState("top-end");
+    const [visualizar, setVisualizar] = useState(false);
 
     const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas } = useContext(DadosContext)
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, formatarHorarioParaUsuario, logout } = useContext(UtilsContext)
@@ -124,6 +125,7 @@ function Agendamentos() {
                             limparCampos();
                             setLastId(resp.data.lastId)
                             carregarAgendamentos();
+                            setToast(false);
                             setTituloToast("Agendamento");
                             setMsgToast("Agendamento realizado com sucesso!");
                             setClasseToast('Success');
@@ -147,6 +149,7 @@ function Agendamentos() {
                             limparCampos();
                             carregarAgendamentos();
                             setAdd(true);
+                            setToast(false);
                             setTituloToast("Agendamento");
                             setMsgToast("Agendamento editado com sucesso!");
                             setClasseToast('Success');
@@ -227,9 +230,10 @@ function Agendamentos() {
 
     async function gerarOS() {
         if (ag.ve_id == null) {
+            setToast(false);
             setTituloToast("⚠️ Agendamento ➭ O.S.");
             setMsgToast("Informe um veículo para o agendamento");
-            setClasseToast('Light');
+            setClasseToast('Warning');
             setPos("top-center")
             setModalOS(false)
             setToast(true);
@@ -249,9 +253,10 @@ function Agendamentos() {
                         if (resp2.data.status) {
                             setModalOS(false);
                             carregarAgendamentos();
-                            setTituloToast("O.S. criada");
-                            setMsgToast("⚠️ Acesse 'Ordem de Serviço' para visualizar");
-                            setClasseToast('Light');
+                            setToast(false);
+                            setTituloToast("O.S. criada com sucesso ✅");
+                            setMsgToast("Acesse 'Ordem de Serviço' para visualizar");
+                            setClasseToast('Secondary');
                             setPos("top-center")
                             setToast(true)
                         }
@@ -272,6 +277,7 @@ function Agendamentos() {
 
     async function excluirAgendamento() {
         const resp = await api.delete('/agenda/' + ag.ag_id)
+        setToast(false);
         if (resp.data.status) {
             //alerta('mensagemForm mensagemForm-Sucesso', 'Agendamento excluído').then(() => { setModalExcluir(false); setAg(null); })
             setMsgToast("Agendamento excluído");
@@ -299,6 +305,7 @@ function Agendamentos() {
             setTituloToast("Cadastro");
             if (resp.data.status) {
                 setIdNovoCliente(resp.data.lastId);
+                setToast(false);
                 setMsgToast("Cliente cadastrado com sucesso");
                 setClasseToast('Success');
                 setPos("top-end");
@@ -306,6 +313,7 @@ function Agendamentos() {
                 setGravouCliente(true);
             }
             else {
+                setToast(false);
                 setMsgToast("Erro ao tentar cadastrar cliente");
                 setClasseToast('Danger');
                 setPos("top-end");
@@ -325,63 +333,71 @@ function Agendamentos() {
                         <div className="line"></div>
                         <BtAdicionar onClick={() => { setAdd(true); setModal(true); limparCampos(); clearErrors(); }} />
                         <AreaSearch placeholder="Busque com o nome do cliente..." value={campoBusca} onKeyUp={carregarAgendamentos} onChange={(e) => setCampoBusca(e.target.value)} onClick={carregarAgendamentos} />
-
-                        <table className="table table-hover" style={{ overflow: 'auto' }} >
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Data</th>
-                                    <th scope="col">Horário</th>
-                                    <th scope="col">Cliente</th>
-                                    <th scope="col">Anotações</th>
-                                    <th scope="col">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {listaAg.map((ag, i) => (
-                                    <tr key={i}>
-                                        <th scope="row">{ag.ag_id}</th>
-                                        <td>{formatarDataParaUsuario(ag.data.split('T')[0])}</td>
-                                        <td>{formatarHorarioParaUsuario(ag.horario)}</td>
-                                        <td>{ag.cli_nome}</td>
-                                        <td>{ag.ag_anotacoes}</td>
-                                        <td>
-                                            <Button data-toggle="tooltip" data-placement="bottom" title="Gerar OS" className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { setAg(ag); setModalOS(true); }}>
-                                                <BsGear style={{ color: '#231f20' }} />
-                                            </Button>
-                                            <Button data-toggle="tooltip" data-placement="bottom" title="Notificar" className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { setAg(ag); recuperarEmail(ag); setModalMsg(true); }}>
-                                                <BsEnvelopeOpen style={{ color: '#231f20' }} size={15} />
-                                            </Button>
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { clearErrors(); setAdd(false); setAg(ag); carregarCampos(ag); setModal(true); }}>
-                                                <FiEdit className='btEditar' />
-                                            </Button>
-
-                                            <Button
-                                                className='m-0 p-0 px-1 border-0 bg-transparent' >
-                                                <FiTrash className='btExcluir' onClick={() => { setAg(ag); setModalExcluir(true); }} />
-                                            </Button>
-
-                                        </td>
+                        <div className="scrollYTable">
+                            <table className="table table-hover" style={{ overflow: 'auto' }} >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Data</th>
+                                        <th scope="col">Horário</th>
+                                        <th scope="col">Cliente</th>
+                                        <th scope="col">Anotações</th>
+                                        <th scope="col">Ação</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {listaAg.map((ag, i) => (
+                                        <tr key={i}>
+                                            <th scope="row">{ag.ag_id}</th>
+                                            <td>{formatarDataParaUsuario(ag.data.split('T')[0])}</td>
+                                            <td>{formatarHorarioParaUsuario(ag.horario)}</td>
+                                            <td>{ag.cli_nome}</td>
+                                            <td>{ag.ag_anotacoes}</td>
+                                            <td>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { clearErrors(); setVisualizar(true); carregarCampos(ag); setModal(true); }}>
+                                                    <FiEye className='btComum' />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Gerar OS"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { setAg(ag); setModalOS(true); }}>
+                                                    <BsGear style={{ color: '#231f20' }} />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Notificar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { setAg(ag); recuperarEmail(ag); setModalMsg(true); }}>
+                                                    <BsEnvelopeOpen style={{ color: '#231f20', fontWeight: '300' }} size={15} />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Editar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { clearErrors(); setAdd(false); setAg(ag); carregarCampos(ag); setModal(true); }}>
+                                                    <FiEdit className='btComum' />
+                                                </Button>
+
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-danger' >
+                                                    <FiTrash className='btExcluir' onClick={() => { setAg(ag); setModalExcluir(true); }} />
+                                                </Button>
+
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
             <>
-                <Modal className="col-md-12" show={modal} onHide={() => { setModal(false) }}>
-                    <Modal.Header className='modal-title' closeButton style={{ letterSpacing: '0.05em' }}>{add ? "Agendar Serviços" : "Editar Agendamento"}<BsClockHistory style={{ color: '#231f20' }} />
+                <Modal className="col-md-12" show={modal} onHide={() => { setModal(false); setVisualizar(false); }}>
+                    <Modal.Header className='modal-title' closeButton style={{ letterSpacing: '0.05em' }}>
+                        {visualizar ? "Visualizar Agendamento" : add ? "Agendar Serviços" : "Editar Agendamento"}&nbsp;<BsClockHistory style={{ color: '#231f20' }} />
                     </Modal.Header>
                     <Modal.Body>
 
                         <Form>
-                            <Form.Input type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6"
+                            <Form.Input leitura={visualizar} type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6"
                                 id="data" name="data" label="Informe a Data"
                                 onBlur={handleBlur} register={register} value={data}
                                 onChange={e => { setValue("data", e.target.value); setData(e.target.value); errors.data && trigger('data') }}
                                 erro={errors.data} />
-                            <Form.Input type="time" cols="col-md-6"
+                            <Form.Input leitura={visualizar} type="time" cols="col-md-6"
                                 id="horario" name="horario" label="Informe o horário"
                                 register={register} value={horario}
                                 onChange={e => { setValue("horario", e.target.value); setHorario(e.target.value); errors.horario && trigger('horario') }}
@@ -402,7 +418,7 @@ function Agendamentos() {
                                     </div>
                                 </div>
                             }
-                            {add &&
+                            {(!visualizar && add) &&
                                 <div className="col-md-12 pb-1">
                                     <div style={{ position: 'absolute', right: '2rem' }}>
                                         <label className="form-check-label" for="flexSwitchCheckDefault">Cadastrar Cliente&nbsp;</label>
@@ -412,14 +428,14 @@ function Agendamentos() {
                             }
                             {!flagCliente ?
                                 <>
-                                    <Select cols="col-md-12" id="cliId" label="Cliente" register={register} value={cliId}
+                                    <Select leitura={visualizar} cols="col-md-12" id="cliId" label="Cliente" register={register} value={cliId}
                                         onChange={e => { setValue("cliId", e.target.value); setCliId(e.target.value); errors.cliId && trigger('cliId'); }}
                                         erro={errors.cliId}>
                                         {clis.map((cli, i) => (
                                             <option key={i} value={cli.cli_id}>{cli.cli_nome}</option>
                                         ))}
                                     </Select>
-                                    <Select cols="col-md-12" id="veId" label="Veículos" register={register} value={veId}
+                                    <Select leitura={visualizar} cols="col-md-12" id="veId" label="Veículos" register={register} value={veId}
                                         onChange={e => { setValue("veId", e.target.value); setVeId(e.target.value); errors.veId && trigger('veId'); }}
                                         erro={errors.veId}>
                                         {veiculos.map((ve, i) => (
@@ -431,10 +447,10 @@ function Agendamentos() {
                                 <div className="container">
                                     <div className='mb-2' style={{ fontWeight: 500 }}>Cliente</div>
                                     <div className="row secaoItensEstatico g-2" >
-                                        <Form.Input type="text" cols="col-md-6" id="nomeCliente" name="nomeCliente" placeholder="Ex: José Silva" label="Nome *" register={register}
+                                        <Form.Input leitura={visualizar} type="text" cols="col-md-6" id="nomeCliente" name="nomeCliente" placeholder="Ex: José Silva" label="Nome *" register={register}
                                             value={nomeCliente} onChange={e => { setNomeCliente(e.target.value); setValue("nomeCliente", e.target.value); errors.nomeCliente && trigger('nomeCliente'); }}
                                             erro={errors.nomeCliente} />
-                                        <Form.Input type="text" cols="col-md-4" id="foneCliente" name="foneCliente" placeholder="181111-1111" label="Celular *" register={register}
+                                        <Form.Input leitura={visualizar} type="text" cols="col-md-4" id="foneCliente" name="foneCliente" placeholder="181111-1111" label="Celular *" register={register}
                                             value={foneCliente} onChange={e => { setFoneCliente(e.target.value); setValue("foneCliente", e.target.value); errors.foneCliente && trigger('foneCliente'); }}
                                             erro={errors.foneCliente} />
                                         <div className="col-md-2" style={{ display: 'flex', alignItems: (errors.nomeCliente == errors.foneCliente) ? 'end' : 'center' }}>
@@ -445,19 +461,32 @@ function Agendamentos() {
                                     </div>
                                 </div>
                             }
-                            <Form.InputArea label="Anotações" id="anotacoes" name="anotacoes" value={anotacoes}
+                            <Form.InputArea leitura={visualizar} label="Anotações" id="anotacoes" name="anotacoes" value={anotacoes}
                                 onChange={e => { setAnotacoes(e.target.value) }} />
                         </Form>
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
 
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { setModal(false); }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(agendar(e)) }} >
-                            Confirmar
-                        </Button>
+                        {visualizar ?
+                            <>
+                                <Button variant="secondary" disabled>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" disabled>
+                                    Confirmar
+                                </Button>
+                            </>
+                            :
+                            <>
+                                <Button variant="secondary" onClick={() => { setModal(false); }}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(agendar(e)) }} >
+                                    Confirmar
+                                </Button>
+                            </>
+                        }
                     </Modal.Footer>
                 </Modal>
             </>
@@ -486,19 +515,18 @@ function Agendamentos() {
             </>
             <>
                 <Modal show={modalOS} onHide={() => { setModalOS(false) }} className="oi">
-                    <Modal.Header className='modal-title' closeButton><Modal.Title>⚠️</Modal.Title></Modal.Header>
                     <Modal.Body>
-                        <b style={{ color: 'red' }}>Gerar OS para agendamento ?<br /></b>
+                        <b style={{ color: 'red' }}>⚠️ Gerar OS para agendamento?<br /></b>
                         <p></p>
                         <b>Cliente: </b>{ag && ag.cli_nome} <br /> <b>Data: </b>{ag && formatarDataParaUsuario(ag.data.split('T')[0])} às {ag && formatarHorarioParaUsuario(ag.horario)}h
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
 
                     <Modal.Footer>
-                        {/*<Button variant="secondary" onClick={onClickCancel}>
-                    Cancelar
-                    </Button>*/}
-                        <Button type="submit" variant="danger" onClick={() => { gerarOS() }}>
+                        <Button type="submit" variant="secondary" className='btn-sm' onClick={()=>setModalOS(false)}>
+                            Não
+                        </Button>
+                        <Button type="submit" variant="danger" className='btn-sm' onClick={() => { gerarOS() }}>
                             Sim
                         </Button>
                     </Modal.Footer>

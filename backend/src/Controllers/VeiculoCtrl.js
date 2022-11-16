@@ -7,7 +7,7 @@ module.exports = {
         const con = await db.conecta();
         const sql = "select c.cli_id, cli_nome, cli_tel, ve_id, ve_placa, ve_ano, ve_cor, ve_modelo, m.mc_id, mc_nome from "+
         "marca m, veiculo v, cliente c "+
-        "where v.cli_id = c.cli_id and v.mc_id = m.mc_id";
+        "where v.cli_id = c.cli_id and v.mc_id = m.mc_id order by ve_id";
         const ve = await db.consulta(sql);
         return response.json(ve.data);
     },
@@ -57,12 +57,6 @@ module.exports = {
 
     async gravar(request, response) {
         const {placa,cor,modelo,ano,cliId,marcaId} = request.body;
-       /* console.log("placa: "+placa+
-                    "\ncor: "+cor+
-                    "\nmodelo: "+modelo+
-                    "\nano: "+ano+
-                    "\ncliId: "+cliId+
-                    "\nmarcaId: "+marcaId);*/
         const sql = "insert into veiculo (ve_placa,ve_cor,ve_modelo,ve_ano,cli_id,mc_id)" +
             "VALUES (?,?,?,?,?,?)";
         const valores = [
@@ -75,10 +69,10 @@ module.exports = {
 
     async editar(request, response){
         const {id,placa,cor,modelo,ano,cliId,marcaId} = request.body;
-        const sql = "UPDATE veiculo SET ve_cor = ?, ve_modelo = ?, ve_ano = ?, mc_id = ?, cli_id = ? "+ 
+        const sql = "UPDATE veiculo SET ve_cor = ?, ve_modelo = ?, ve_ano = ?, mc_id = ?, cli_id = ?, ve_placa=? "+ 
             "where ve_id = ?";
         const valores = [
-            cor, modelo, ano, marcaId, cliId, id
+            cor, modelo, ano, marcaId, cliId, placa, id
         ];
         await db.conecta();
         const result = await db.manipula(sql, valores);

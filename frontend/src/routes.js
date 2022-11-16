@@ -14,7 +14,7 @@ import { UtilsProvider } from './context/UtilsContext';
 import DadosProvider from './context/DadosContext';
 import Agendamentos from './pages/fundamentais/Agendamentos';
 import ContaPagar from './pages/fundamentais/ContaPagar';
-
+import Perfil from './pages/basicas/Perfil';
 
 function PrivateRoute() {
 
@@ -42,6 +42,7 @@ function Rotas() {
                             <Route exact path='contareceber' element={<ContaReceber />} />
                             <Route exact path='/agendamentos' element={<Agendamentos />} />
                             <Route exact path='/contapagar' element={<ContaPagar/>} />
+                            <Route exact path='/meusdados' element={<Perfil/>} />
                         </Route>
 
                     </Routes>

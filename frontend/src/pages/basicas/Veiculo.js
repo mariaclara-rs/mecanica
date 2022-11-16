@@ -10,12 +10,14 @@ import Form from '../../components/Form'
 import Search from '../../components/Search'
 import ModalExcluir from '../../components/ModalExcluir';
 import BtSair from '../../components/BtSair';
+import Select from '../../components/Select';
+import AreaSearch from '../../components/AreaSearch';
 
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 
-import { FiTrash, FiEdit } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiEye, FiFilter } from 'react-icons/fi';
 import { BiCar } from "react-icons/bi";
 
 import ToastMessage from '../../components/ToastMessage';
@@ -47,6 +49,7 @@ function Veiculo() {
     const [msgToast, setMsgToast] = useState("");
     const [tituloToast, setTituloToast] = useState("");
 
+    const [visualizar, setVisualizar] = useState(false);
     const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, logout } = useContext(UtilsContext)
 
     const schema = yup.object({
@@ -66,8 +69,21 @@ function Veiculo() {
 
 
     async function carregarVeiculos() {
+
         const resp = await api.get('/veiculos');
-        setVeiculos(resp.data);
+        if (campoBusca.length > 0) {
+            if (filtro == 1)//marca
+                setVeiculos(resp.data.filter(ve => ve.mc_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+            else if (filtro == 2) {//cliente
+                setVeiculos(resp.data.filter(ve => ve.cli_nome.toUpperCase().includes(campoBusca.toUpperCase())))
+            }
+            else if (filtro == 3) {//placa
+                setVeiculos(resp.data.filter(ve => ve.ve_placa.toUpperCase().includes(campoBusca.toUpperCase())))
+            }
+        }
+        else
+            setVeiculos(resp.data);
+
     }
 
     async function carregarClientes() {
@@ -88,29 +104,37 @@ function Veiculo() {
                 let resp;
                 if (add) {
                     resp = await api.post('/veiculos/gravar', {
-                        placa, cor, modelo, ano, cliId, marcaId
+                        placa, cor, modelo, ano: ano == '' ? 0 : ano, cliId, marcaId
                     })
                     if (JSON.stringify(resp.data.status) == 'false') {
-                        alerta('mensagemForm mensagemForm-Erro', 'Veículo já existente!');
+                        alerta('mensagemForm mensagemForm-Erro', 'Erro! Não foi possível adicionar o veículo.');
                     }
                     else {
+                        setToast(false);
+                        setTituloToast("Cadastro")
+                        setMsgToast("Veículo cadastrado com sucesso!");
+                        setClasseToast('Success');
+                        setToast(true);
+                        setModal(false);
                         limparForm();
-                        alerta('mensagemForm mensagemForm-Sucesso', 'Veículo cadastrado!');
                     }
                 }
                 else {
-                    //console.log("id: " + id + " placa: " + placa + " cor: " + cor + " modelo: " + modelo + "ano: " + ano + " cliId: " + cliId + " marcaId: " + marcaId);
-                    //console.log(Number(cliId))
                     resp = await api.put('/veiculos/editar', {
-                        id, placa, cor, modelo, ano, cliId: Number(cliId), marcaId
+                        id, placa, cor, modelo, ano: ano == '' ? 0 : ano, cliId: Number(cliId), marcaId
                     })
                     if (JSON.stringify(resp.data.status) == 'false') {
                         alerta('mensagemForm mensagemForm-Erro', 'Erro ao tentar editar veículo!');
                     }
                     else {
+                        setToast(false);
+                        setTituloToast("Edição")
+                        setMsgToast("Dados atualizados com sucesso!");
+                        setClasseToast('Success');
+                        setToast(true);
+                        setModal(false);
                         setAdd(true);
                         limparForm();
-                        alerta('mensagemForm mensagemForm-Sucesso', 'Dados atualizados!');
                     }
                 }
                 carregarVeiculos();
@@ -127,6 +151,7 @@ function Veiculo() {
     async function excluirVeiculo() {
         const resp = await api.delete('/veiculos/' + id);
         if (JSON.stringify(resp.data.status) == 'false') {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Erro. Não foi possível excluir o veículo");
             setClasseToast('Danger');
@@ -135,6 +160,7 @@ function Veiculo() {
             setPlacaTemp('');
         }
         else {
+            setToast(false);
             setTituloToast("Exclusão")
             setMsgToast("Veículo excluído");
             setClasseToast('Success');
@@ -150,6 +176,12 @@ function Veiculo() {
         setId(ve_id);
         carregarCampos(i);
         setAdd(false);
+        setModal(true);
+    }
+
+    async function visualizarVeiculo(ve_id, i) {
+        setVisualizar(true);
+        carregarCampos(i);
         setModal(true);
     }
 
@@ -185,41 +217,6 @@ function Veiculo() {
         setAdd(true);
     }
 
-    async function buscarVeiculo() {
-        let resp;
-        let params;
-        if (campoBusca != '') {
-            if (filtro == undefined || filtro == 1) {
-                params = {
-                    marca: campoBusca
-                };
-                resp = await api.get('/veiculos/marca', {
-                    params
-                })
-            }
-            else if (filtro == 2) {
-                params = {
-                    cliente: campoBusca
-                };
-                resp = await api.get('/veiculos/cliente', {
-                    params
-                })
-            }
-            else {
-                params = {
-                    placa: campoBusca
-                };
-                resp = await api.get('/veiculos/placa', {
-                    params
-                })
-            }
-            setVeiculos(resp.data.data);
-        }
-        else {
-            carregarVeiculos();
-        }
-    }
-
     const formatCharsPlaca = {
         'L': '[A-Za-z]',
         'N': '[0-9]',
@@ -243,58 +240,61 @@ function Veiculo() {
                             Adicionar +
                         </button>
                         {/*Campo de busca*/}
-                        <div className="row mt-5 mb-3">
-                            <div className="col-md-5">
-                                <Search>
-                                    <Search.Input placeholder="Busque por um veículo..." value={campoBusca} onChange={e => { setCampoBusca(e.target.value); buscarVeiculo(); }} onBlur={buscarVeiculo} />
-                                    <Search.Span onClick={() => { buscarVeiculo() }} />
-                                </Search>
-                            </div>
-                            <div className="col-md-2">
-                                <select id="filtro" className="form-select"
-                                    value={filtro} onChange={e => { setFiltro(e.target.value) }}>
-                                    <option selected disabled>Busque por</option>
-                                    <option value={1}>Marca</option>
-                                    <option value={2}>Cliente</option>
-                                    <option value={3}>Placa</option>
-                                </select>
-                            </div>
-                        </div>
+                        <AreaSearch placeholder="Digite aqui..." value={campoBusca} onKeyUp={carregarVeiculos} onChange={(e) => setCampoBusca(e.target.value)} onClick={carregarVeiculos}>
+                            <div className="row col-md-5">
+                                <div className="col-md-1" style={{ padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'end' }}>
+                                    <FiFilter size={20} style={{ color: '#231f20' }} />
+                                </div>
 
-                        <table className="table table-hover" style={{ overflow: 'auto' }} >
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Marca</th>
-                                    <th scope="col">Modelo</th>
-                                    <th scope="col">Placa</th>
-                                    <th scope="col">Cor</th>
-                                    <th scope="col">Proprierário</th>
-                                    <th scope="col">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {veiculos.map((v, i) => (
-                                    <tr key={i}>
-                                        <th scope="row">{v.ve_id}</th>
-                                        <td>{v.mc_nome}</td>
-                                        <td>{v.ve_modelo}</td>
-                                        <td>{v.ve_placa}</td>
-                                        <td>{v.ve_cor}</td>
-                                        <td>{v.cli_nome}</td>
-                                        <td >
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent ' onClick={() => { limparForm(); clearErrors(); editarVeiculo(v.ve_id, i) }}>
-                                                <FiEdit className='btEditar' />
-                                            </Button>
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { setId(v.ve_id); setPlacaTemp(v.ve_placa); setModalExcluir(true); }} >
-                                                <FiTrash className='btExcluir' />
-                                            </Button>
-                                        </td>
+                                <div className="col-md-7">
+                                    <select id="filtro" className="form-select"
+                                        value={filtro} onChange={e => { setFiltro(e.target.value) }}>
+                                        <option selected disabled>Filtre por</option>
+                                        <option value={1}>Marca</option>
+                                        <option value={2}>Cliente</option>
+                                        <option value={3}>Placa</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </AreaSearch>
+                        <div className="scrollYTable">
+                            <table className="table table-hover" >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Marca</th>
+                                        <th scope="col">Modelo</th>
+                                        <th scope="col">Placa</th>
+                                        <th scope="col">Cor</th>
+                                        <th scope="col">Proprierário</th>
+                                        <th scope="col">Ação</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
+                                </thead>
+                                <tbody >
+                                    {veiculos.map((v, i) => (
+                                        <tr key={i}>
+                                            <th scope="row">{v.ve_id}</th>
+                                            <td>{v.mc_nome}</td>
+                                            <td>{v.ve_modelo}</td>
+                                            <td>{v.ve_placa}</td>
+                                            <td>{v.ve_cor}</td>
+                                            <td>{v.cli_nome}</td>
+                                            <td >
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { visualizarVeiculo(v.ve_id, i) }}>
+                                                    <FiEye className='btComum' />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Editar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { limparForm(); clearErrors(); editarVeiculo(v.ve_id, i) }}>
+                                                    <FiEdit className='btComum' />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Excluir" className='m-0 p-0 px-1 border-0 bg-transparent btn-danger' onClick={() => { setId(v.ve_id); setPlacaTemp(v.ve_placa); setModalExcluir(true); }} >
+                                                    <FiTrash className='btExcluir' />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
 
@@ -302,65 +302,65 @@ function Veiculo() {
             </div>
 
             <React.Fragment>
-                <Modal className="lg" show={modal} onHide={() => { setModal(false) }}>
-                    <Modal.Header className='modal-title' closeButton >{add ? "Cadastro de Veículo" : "Editar veículo"}</Modal.Header>
+                <Modal className="lg" show={modal} onHide={() => { setModal(false); setVisualizar(false) }}>
+                    <Modal.Header className='modal-title' closeButton >{visualizar ? "Visualizar veículo" : add ? "Cadastro de veículo" : "Editar veículo"}</Modal.Header>
                     <Modal.Body>
                         <Form>
-                            <div className="col-md-12">
-                                <label htmlFor="cliId">Cliente Proprietário *</label>
-                                <select id="cliId" name="cliId" className="form-select" {...register("cliId")}
-                                    value={cliId} onChange={e => { setCliId(e.target.value); setValue("cliId", e.target.value); errors.cliId && trigger('cliId'); }}>
-                                    <option disabled selected value={""}>Selecione</option>
-                                    {clientes.map((cli, i) => (
-                                        <option key={i} value={cli.cli_id}>{cli.cli_nome}</option>
-                                    ))}
-                                </select>
-                                {errors.cliId && <p className="erroForm">{errors.cliId?.message}</p>}
-                            </div>
+                            <Select leitura={visualizar} cols="col-md-12" id="cliId" label="Cliente Proprietário *" register={register}
+                                value={cliId} onChange={e => {
+                                    setCliId(e.target.value); setValue("cliId", e.target.value); errors.cliId && trigger('cliId');
+                                }}
+                                erro={errors.cliId}>
+                                {clientes.map((cli, i) => (
+                                    <option key={i} value={cli.cli_id}>{cli.cli_nome}</option>
+                                ))}
+                            </Select>
+                            <Form.Input leitura={visualizar} cols="col-md-6" id="placa" placeholder="..." label="Placa *" register={register}
+                                value={placa} onChange={e => { setPlaca(e.target.value); setValue("placa", e.target.value); errors.placa && trigger("placa") }}
+                                erro={errors.placa} formatChars={formatCharsPlaca} mascara="LLLNXNN" />
 
-                            {add ?
-                                <Form.Input cols="col-md-6" id="placa" placeholder="..." label="Placa *" register={register}
-                                    value={placa} onChange={e => { setPlaca(e.target.value); setValue("placa", e.target.value); errors.placa && trigger("placa") }}
-                                    erro={errors.placa} formatChars={formatCharsPlaca} mascara="LLLNXNN" />
-                                :
-                                <Form.Input readOnly cols="col-md-6" id="placa" placeholder="..." label="Placa *" register={register}
-                                    value={placa} onChange={e => { setPlaca(e.target.value); setValue("placa", e.target.value); errors.placa && trigger("placa") }}
-                                    erro={errors.placa} formatChars={formatCharsPlaca} mascara="LLLNXNN" />
-                            }
+                            <Select leitura={visualizar} cols="col-md-6" id="marcaId" label="Marca *" register={register}
+                                value={marcaId} onChange={e => {
+                                    setMarcaId(e.target.value); setValue("marcaId", e.target.value); errors.marcaId && trigger("marcaId")
+                                }}
+                                erro={errors.marcaId}>
+                                {marcas.map((m, i) => (
+                                    <option key={i} value={m.mc_id}>{m.mc_nome}</option>
+                                ))}
+                            </Select>
 
-
-
-                            <div className="col-md-6">
-                                <label htmlFor="marcaId">Marca *</label>
-                                <select id="marcaId" name="marcaId" className="form-select" {...register("marcaId")}
-                                    value={marcaId} onChange={e => { setMarcaId(e.target.value); setValue("marcaId", e.target.value); errors.marcaId && trigger("marcaId") }}>
-                                    <option disabled selected value={""}>Selecione</option>
-                                    {marcas.map((m, i) => (
-                                        <option key={i} value={m.mc_id}>{m.mc_nome}</option>
-                                    ))}
-                                </select>
-                                {errors.marcaId && <p className="erroForm">{errors.marcaId?.message}</p>}
-                            </div>
-
-                            <Form.Input cols="col-md-12" id="modelo" placeholder="..." label="Modelo"
+                            <Form.Input leitura={visualizar} cols="col-md-12" id="modelo" placeholder="..." label="Modelo"
                                 value={modelo} onChange={e => setModelo(e.target.value)} register={register} />
 
-                            <Form.Input mascara="9999" cols="col-md-6" id="ano" placeholder="..." label="Ano"
+                            <Form.Input leitura={visualizar} mascara="9999" cols="col-md-6" id="ano" placeholder="..." label="Ano"
                                 value={ano} onChange={e => setAno(e.target.value)} register={register} />
 
-                            <Form.Input cols="col-md-6" id="cor" placeholder="..." label="Cor"
+                            <Form.Input leitura={visualizar} cols="col-md-6" id="cor" placeholder="..." label="Cor"
                                 value={cor} onChange={e => setCor(e.target.value)} register={register} />
 
                         </Form>
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { setModal(false); limparForm(); }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarVeiculo(e)) }} >
-                            Confirmar
-                        </Button>
+                        {!visualizar ?
+                            <>
+                                <Button variant="secondary" onClick={() => { setModal(false); limparForm(); }}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarVeiculo(e)) }} >
+                                    Confirmar
+                                </Button>
+                            </>
+                            :
+                            <>
+                                <Button disabled variant="secondary">
+                                    Cancelar
+                                </Button>
+                                <Button disabled type="submit" variant="primary">
+                                    Confirmar
+                                </Button>
+                            </>
+                        }
                     </Modal.Footer>
                 </Modal>
             </React.Fragment>

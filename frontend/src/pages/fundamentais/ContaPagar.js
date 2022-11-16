@@ -7,8 +7,9 @@ import AreaSearch from '../../components/AreaSearch';
 import BtAdicionar from '../../components/BtAdicionar';
 import Form from '../../components/Form';
 import Select, { SelectReadOnly } from '../../components/Select';
+import ToastMessage from '../../components/ToastMessage';
 
-import { FiTrash, FiEdit, FiCheckCircle, FiFilter } from 'react-icons/fi';
+import { FiTrash, FiEdit, FiCheckCircle, FiFilter, FiEye } from 'react-icons/fi';
 import { RiWallet3Line } from 'react-icons/ri';
 import { BsPlusLg } from 'react-icons/bs';
 
@@ -56,9 +57,16 @@ function ContaPagar() {
     const [filtro, setFiltro] = useState("");
     const [campoBusca, setCampoBusca] = useState("");
 
+    const [toast, setToast] = useState(false);
+    const [classeToast, setClasseToast] = useState();
+    const [msgToast, setMsgToast] = useState("");
+    const [tituloToast, setTituloToast] = useState("");
+
+    const [visualizar, setVisualizar] = useState(false);
+
     const { clis, carregarClis, servicos, carregarServicos, pecas, carregarPecas, tpDespesa, carregarTpDespesa,
         dists, carregarDists } = useContext(DadosContext)
-    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, EnumTipoDespesa, logout } = useContext(UtilsContext)
+    const { sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, EnumTipoDespesa, logout, aredondar } = useContext(UtilsContext)
 
 
     const schema = yup.object({
@@ -87,7 +95,7 @@ function ContaPagar() {
         carregarCP();
     }, [])
     useEffect(() => {
-        carregarCP();
+        //carregarCP();
     }, [modalQuitar]);
     useEffect(() => {
         let parc = vetParc.filter(par => par.num == numParc)
@@ -117,7 +125,7 @@ function ContaPagar() {
             }
         }
     }
-    function adicionarParcela() {
+    async function adicionarParcela() {
         if (numParc != "" && numParc != undefined && parcVal != "" && parcVal != undefined && dtVenc != "" && dtVenc != undefined) {
             //let parc = vetParc.filter(par => par.num == )
             //if (pec != null) {
@@ -150,6 +158,13 @@ function ContaPagar() {
     function calcTot() {
         let soma = 0
         vetParc.forEach(element => {
+            soma += Number(element.valor)
+        });
+        return soma
+    }
+    function calcTotPecas() {
+        let soma = 0
+        vetPec.forEach(element => {
             soma += Number(element.valor)
         });
         return soma
@@ -192,7 +207,13 @@ function ContaPagar() {
                             }).then((resp3) => { });
                         }
                     })
-                    alerta('mensagemForm mensagemForm-Sucesso', 'Conta a Pagar registrada!');
+                    setToast(false);
+                    setTituloToast("Cadastro");
+                    setMsgToast("Conta a pagar registrada com sucesso!");
+                    setClasseToast('Success');
+                    setModal(false);
+                    setToast(true);
+                    carregarCP();
                 }
                 else {
                     //excluir pecas de pecascontapagar da c
@@ -218,12 +239,19 @@ function ContaPagar() {
                             api.put('/contapagar', {
                                 cp_id: cpAtual.cp_id,
                                 cp_valTot: calcTot(),
-                                dist_id: distId,
-                                tp_id: tdId
+                                dist_id: tdId == EnumTipoDespesa.variavel ? distId : null,
+                                tp_id: tdId,
+                                desc: tdId == EnumTipoDespesa.fixa ? desc : null
                             }).then((r) => {
                                 if (r.data.status) {
-                                    alerta('mensagemForm mensagemForm-Sucesso', 'Conta Editada!');
+                                    setToast(false);
+                                    setTituloToast("Edição");
+                                    setMsgToast("Dados atualizados com sucesso!");
+                                    setClasseToast('Success');
+                                    setToast(true);
+                                    setModal(false);
                                     limparCampos();
+
                                 }
                             })
                         })
@@ -231,16 +259,18 @@ function ContaPagar() {
                     setAdd(true);
                 }
                 limparCampos();
-                carregarCP();
+                //carregarCP();
             }
             else {
                 alerta('mensagemForm mensagemForm-Alerta', 'Erro. Verifique os campos obrigatórios!');
+                carregarCP();
             }
         }
         else {
             alerta('mensagemForm mensagemForm-Erro', 'Preencha os campos obrigatórios!');
+            carregarCP();
         }
-        carregarCP();
+        
     }
     function limparCampos() {
         clearErrors();
@@ -304,7 +334,6 @@ function ContaPagar() {
         setVetParc(cp.parcelas);
         setValCP(cp.cp_valTot);
         setCpAtual(cp);
-
     }
 
     function verificarParc(parc_num) {
@@ -368,11 +397,16 @@ function ContaPagar() {
         }
         else
             alerta('mensagemForm mensagemForm-Erro', 'Preencha os campos obrigatórios!');
+        carregarCP();
     }
     function editarCP(conta, i) {
         limparCampos();
         clearErrors();
         setAdd(false);
+        carregarCampos(conta, i)
+        setModal(true);
+    }
+    async function carregarCampos(conta, i) {
         setCpAtual(conta);
         setTdId(conta.tp_id);
         setValue("tdId", conta.tp_id);
@@ -402,6 +436,12 @@ function ContaPagar() {
             })
         }
         setVetParc(data);
+    }
+    async function visualizarCP(c, i) {
+        limparCampos();
+        clearErrors();
+        setVisualizar(true);
+        carregarCampos(c, i)
         setModal(true);
     }
     return (
@@ -433,41 +473,47 @@ function ContaPagar() {
                             </div>
 
                         </AreaSearch>
-
-                        <table className="table table-hover" style={{ overflow: 'auto' }} >
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Tipo de Despesa</th>
-                                    <th scope="col">Última em aberto</th>
-                                    <th scope="col">Situação</th>
-                                    <th scope="col">Quantidade de Parcelas</th>
-                                    <th scope="col">Valor Total</th>
-                                    <th scope="col">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cp.map((c, i) => (
-                                    (utlimaEmAberto(c.parcelas)[2] === filtro || filtro == "" || filtro == "Distribuidora") &&
-                                    <tr key={i}>
-                                        <th scope="row">{c.cp_id}</th>
-                                        <td>{c.tp_nome}</td>
-                                        <td>{utlimaEmAberto(c.parcelas)[0]}</td>
-                                        <td>{utlimaEmAberto(c.parcelas)[1]}</td>
-                                        <td>{c.parcelas.length}</td>
-                                        <td>{c.cp_valTot}</td>
-                                        <td >
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent ' onClick={() => { limparCampos(); quitarCP(c); setModalQuitar(true) }}>
-                                                <FiCheckCircle style={{ color: '#231f20' }} />
-                                            </Button>
-                                            <Button className='m-0 p-0 px-1 border-0 bg-transparent ' onClick={() => { editarCP(c, i) }}>
-                                                <FiEdit className='btEditar' />
-                                            </Button>
-                                        </td>
+                        <div className="scrollYTable">
+                            <table className="table table-hover" style={{ overflow: 'auto' }} >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Tipo de Despesa</th>
+                                        <th scope="col">Última em aberto</th>
+                                        <th scope="col">Situação</th>
+                                        <th scope="col">Quantidade de Parcelas</th>
+                                        <th scope="col">Valor Total</th>
+                                        <th scope="col">Ação</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {cp.map((c, i) => (
+                                        (utlimaEmAberto(c.parcelas)[2] === filtro || filtro == "" || filtro == "Distribuidora") &&
+                                        <tr key={i}>
+                                            <th scope="row">{c.cp_id}</th>
+                                            <td>{c.tp_nome}</td>
+                                            <td>{utlimaEmAberto(c.parcelas)[0]}</td>
+                                            <td>{utlimaEmAberto(c.parcelas)[1]}</td>
+                                            <td>{c.parcelas.length}</td>
+                                            <td>{aredondar(c.cp_valTot)}</td>
+                                            <td >
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Visualizar" className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { visualizarCP(c, i) }}>
+                                                    <FiEye className='btComum' />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Quitar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { limparCampos(); quitarCP(c); setModalQuitar(true) }}>
+                                                    <FiCheckCircle style={{ color: '#231f20' }} />
+                                                </Button>
+                                                <Button data-toggle="tooltip" data-placement="bottom" title="Editar"
+                                                    className='m-0 p-0 px-1 border-0 bg-transparent btn-danger' onClick={() => { editarCP(c, i) }}>
+                                                    <FiEdit className='btComum' />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -506,11 +552,11 @@ function ContaPagar() {
                                         })}
                                     </Select>
                                     <Form.Input disabled type="text" cols="col-md-5" id="valTot" name="valTot"
-                                        label="Valor Total (R$)" value={valCP} />
+                                        label="Valor Total (R$)" value={aredondar(valCP)} />
                                 </div>
                             </div>
                             <Form.Input disabled type="text" cols="col-md-6" id="valParcSelect" name="valParcSelect"
-                                label="Valor Parcela" value={valParc} />
+                                label="Valor Parcela" value={aredondar(valParc)} />
                             <label className='col-md-6'></label>
                             {(parcAtual != null && parcAtual.parc_dtPgto != null) ?
                                 <>
@@ -567,13 +613,13 @@ function ContaPagar() {
                 </Modal>
             </>
             <>
-                <Modal className="col-md-12" show={modal} onHide={() => { setModal(false) }}>
+                <Modal className="col-md-12" show={modal} onHide={() => { setModal(false); setVisualizar(false); }}>
                     <Modal.Header className='modal-title' closeButton style={{ letterSpacing: '0.03em' }}>
-                        {add ? "Registrar Conta a Pagar" : "Editar Conta a Pagar"}&nbsp;<RiWallet3Line style={{ color: '#231f20' }} />
+                        {visualizar ? "Visualizar Conta a Pagar" : add ? "Registrar Conta a Pagar" : "Editar Conta a Pagar"}&nbsp;<RiWallet3Line style={{ color: '#231f20' }} />
                     </Modal.Header>
                     <Modal.Body>
                         <Form>
-                            <Select cols="col-md-6" id="tdId" label="Tipo de Despesa" register={register} value={tdId}
+                            <Select leitura={visualizar} cols="col-md-6" id="tdId" label="Tipo de Despesa" register={register} value={tdId}
                                 onChange={e => { setValue("tdId", e.target.value); setTdId(e.target.value); errors.tdId && trigger('tdId'); }}
                                 erro={errors.tdId}>
                                 {tpDespesa.map((tpDesp, i) => (
@@ -581,147 +627,181 @@ function ContaPagar() {
                                 ))}
                             </Select>
                             {tdId == EnumTipoDespesa.fixa &&
-                                <Form.Input type="text" cols="col-md-12"
+                                <Form.Input leitura={visualizar} type="text" cols="col-md-12"
                                     id="desc" name="desc" label="Descrição" register={register} value={desc}
                                     onChange={e => { setValue("desc", e.target.value); setDesc(e.target.value); errors.desc && trigger('desc'); }}
                                     erro={errors.desc} />
                             }
                             {tdId == EnumTipoDespesa.variavel &&
-                                <Select cols="col-md-6" id="distId" label="Distribuidora" register={register} value={distId}
+                                <Select leitura={visualizar} cols="col-md-6" id="distId" label="Distribuidora" register={register} value={distId}
                                     onChange={e => { setValue("distId", e.target.value); setDistId(e.target.value); errors.distId && trigger('distId'); }}
                                     erro={errors.distId}>
                                     {dists.map((dist, i) => (
                                         <option key={i} value={dist.dist_id}>{dist.dist_nome}</option>
                                     ))}
                                 </Select>}
-                            <div className="container">
-                                <div id="title">Parcelas</div>
-                                <div className="row secaoItens">
-                                    <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { }}>
-                                        <BsPlusLg size={14} style={{ color: '#000' }} onClick={() => { adicionarParcela() }} />
-                                    </Button>
-                                    <Form.Input type="number" min="1" cols="col-md-2" id="numParc" name="numParc" placeholder=""
-                                        label="Num" register={register} value={numParc}
-                                        onChange={e => {
-                                            setValue("numParc", e.target.value); setNumParc(e.target.value); errors.numParc && trigger('numParc');
-                                        }} erro={errors.numParc} />
-
-                                    <Form.Input type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6"
-                                        id="dtVenc" name="dtVenc" label="Data de Vencimento" register={register} value={dtVenc}
-                                        onChange={e => { setValue("dtVenc", e.target.value); setDtVenc(e.target.value); errors.dtVenc && trigger('dtVenc'); }}
-                                        erro={errors.dtVenc} />
-                                    {/*<Form.Input type="number" min="0" cols="col-md-4" id="parcVal" name="parcVal" placeholder=""
-                                        label="Valor" register={register} value={parcVal}
-                                        onChange={e => {
-                                            setValue("parcVal", e.target.value); setParcVal(e.target.value); errors.parcVal && trigger('parcVal');
-                                        }} erro={errors.parcVal} />*/}
-                                    <Form.InputMoney type="text" min="0" cols="col-md-4" id="parcVal" name="parcVal" placeholder=""
-                                        label="Valor" register={register} value={parcVal}
-                                        onChange={e => {
-                                            if(e.target.value.includes("R$")){
-                                                var val = e.target.value.split("R$")[1];
-                                                val = val.replace(",","")
-                                                val = val.replace(".","")
-                                                setValue("parcVal", val); 
-                                                setParcVal(val); 
-                                            }
-                                            else{
-                                                setValue("parcVal", e.target.value); 
-                                                setParcVal(e.target.value); 
-                                            }
-                                            errors.parcVal && trigger('parcVal');
-                                        }} erro={errors.parcVal} />
-
-                                    {vetParc.map((parc, k) => (
-                                        <>
-                                            <div className="col-md-2">
-                                                <label></label>
-                                                <input disabled value={parc.num} className="form-control" />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label></label>
-                                                <input disabled type="date" value={parc.dtVenc} className="form-control" />
-                                            </div>
-                                            <div className="col-md-3">
-                                                <label></label>
-                                                <input disabled type="number" value={parc.valor} className="form-control" />
-                                            </div>
-                                            {parc.dtPag == null &&
-                                                <div className="col-md-1 btExcluirItem">
-                                                    <Button onClick={() => { excluirParc(parc.num) }}
-                                                        className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                        <FiTrash style={{ color: 'red' }} />
-                                                    </Button>
-                                                </div>
-                                            }
-
-                                        </>
-                                    ))}
-                                </div>
-                            </div>
-                            {tdId == EnumTipoDespesa.variavel &&
+                            {(!visualizar || vetParc.length != 0) &&
                                 <div className="container">
-                                    <div id="title">Peças</div>
-                                    <div className="row secaoItens">
-                                        <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarPeca() }}>
-                                            <BsPlusLg size={14} style={{ color: '#000' }} />
+                                    <div id="title">Parcelas</div>
+                                    <div className="row secaoItens g-1 mt-1">
+                                        <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent btn-dark' onClick={() => { }}>
+                                            <BsPlusLg size={14} style={{ color: '#000' }} onClick={() => { adicionarParcela(); setNumParc(Number(numParc)+1) }} />
                                         </Button>
-                                        <Select cols="col-md-6" id="pecId" label="Nome" register={register} value={pecId}
-                                            onChange={e => { setValue("pecId", e.target.value); setPecId(e.target.value); errors.pecId && trigger('pecId'); }}
-                                            erro={errors.pecId}>
-                                            {pecas.map((pec, i) => {
-                                                if (vetPec.filter(vpec => vpec.id == pec.pec_id).length == 0)
-                                                    return (<option key={i} value={pec.pec_id}>{pec.pec_nome}</option>)
-                                            })}
-                                        </Select>
-                                        <Form.Input type="number" min="0" cols="col-md-2" id="pecQtde" name="pecQtde" placeholder=""
-                                            label="Qtde." register={register} value={pecQtde}
-                                            onChange={e => { setValue("pecQtde", e.target.value); setPecQtde(e.target.value); errors.pecQtde && trigger('pecQtde'); }}
-                                            erro={errors.pecQtde} />
-                                        <Form.Input type="number" min="0" cols="col-md-4" id="pecVal" name="pecVal" placeholder=""
-                                            label="Valor (R$)" register={register} value={pecVal}
-                                            onChange={e => { setValue("pecVal", e.target.value); setPecVal(e.target.value); errors.pecVal && trigger('pecVal'); }}
-                                            erro={errors.pecVal} />
-
-                                        {vetPec.map((pec, k) => (
+                                        {!visualizar &&
                                             <>
-                                                <SelectReadOnly key={k} cols="col-md-6" id={pec.id}>
-                                                    <option selected key={k} value={pec.id}>{pec.nome}</option>
-                                                </SelectReadOnly>
+                                                <Form.Input type="number" min="1" cols="col-md-2" id="numParc" name="numParc" placeholder=""
+                                                    label="Num" register={register} value={numParc}
+                                                    onChange={e => {
+                                                        setValue("numParc", e.target.value); setNumParc(e.target.value); errors.numParc && trigger('numParc');
+                                                    }} erro={errors.numParc} />
+
+                                                <Form.Input type="date" min={(new Date()).toISOString().split('T')[0]} cols="col-md-6"
+                                                    id="dtVenc" name="dtVenc" label="Data de Vencimento" register={register} value={dtVenc}
+                                                    onChange={e => { setValue("dtVenc", e.target.value); setDtVenc(e.target.value); errors.dtVenc && trigger('dtVenc'); }}
+                                                    erro={errors.dtVenc} />
+
+                                                <Form.InputMoney type="text" min="0" cols="col-md-4" id="parcVal" name="parcVal" placeholder=""
+                                                    label="Valor (R$)" register={register} value={parcVal}
+                                                    onChange={e => {
+                                                        setValue("parcVal", e.target.value);
+                                                        setParcVal(e.target.value);
+                                                        errors.parcVal && trigger('parcVal');
+                                                    }} erro={errors.parcVal} />
+                                                <label className='mb-1'></label>
+                                            </>
+                                        }
+
+                                        {vetParc.map((parc, k) => (
+                                            <div className='row g-1'>
                                                 <div className="col-md-2">
-                                                    <label></label>
-                                                    <input disabled className="form-control" value={pec.qtde} />
+                                                    <input disabled value={parc.num} className="form-control form-control-sm" />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <input disabled type="date" value={parc.dtVenc} className="form-control form-control-sm" />
                                                 </div>
                                                 <div className="col-md-3">
-                                                    <label></label>
-                                                    <input disabled value={pec.valor} className="form-control" />
+                                                    <input disabled type="number" value={aredondar(parc.valor)} className="form-control form-control-sm" />
                                                 </div>
-                                                <div className="col-md-1 btExcluirItem">
-                                                    <Button onClick={() => excluirPeca(pec.id)}
-                                                        className='m-0 p-0 px-1 border-0 bg-transparent'>
-                                                        <FiTrash style={{ color: 'red' }} />
-                                                    </Button>
-                                                </div>
-                                            </>
+                                                {(parc.dtPag == null && !visualizar) &&
+                                                    <div className="col-md-1 btExcluirItem">
+                                                        <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                            onClick={() => { excluirParc(parc.num) }}
+                                                            className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                            <FiTrash className='btExcluir' />
+                                                        </Button>
+                                                    </div>
+                                                }
+                                                {(parc.dtPag == null && visualizar) &&
+                                                    <div className="col-md-1 btExcluirItem">
+                                                        <Button disabled
+                                                            className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                            <FiTrash className='btExcluir' />
+                                                        </Button>
+                                                    </div>
+                                                }
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
                             }
+                            {((!visualizar || vetPec.length != 0) && tdId == EnumTipoDespesa.variavel) &&
+                                <div className="container">
+                                    <div id="title">Peças</div>
+                                    <div className="row secaoItens g-1 mt-1">
+                                        <Button className='btnMais m-0 p-0 px-1 border-0 bg-transparent' onClick={() => { adicionarPeca() }}>
+                                            <BsPlusLg size={14} style={{ color: '#000' }} />
+                                        </Button>
+                                        {!visualizar &&
+                                            <>
+                                                <Select cols="col-md-6" id="pecId" label="Nome" register={register} value={pecId}
+                                                    onChange={e => { setValue("pecId", e.target.value); setPecId(e.target.value); errors.pecId && trigger('pecId'); }}
+                                                    erro={errors.pecId}>
+                                                    {pecas.map((pec, i) => {
+                                                        if (vetPec.filter(vpec => vpec.id == pec.pec_id).length == 0)
+                                                            return (<option key={i} value={pec.pec_id}>{pec.pec_nome}</option>)
+                                                    })}
+                                                </Select>
+                                                <Form.Input type="number" min="0" cols="col-md-2" id="pecQtde" name="pecQtde" placeholder=""
+                                                    label="Qtde." register={register} value={pecQtde}
+                                                    onChange={e => { setValue("pecQtde", e.target.value); setPecQtde(e.target.value); errors.pecQtde && trigger('pecQtde'); }}
+                                                    erro={errors.pecQtde} />
+                                                <Form.InputMoney type="text" min="0" cols="col-md-4" id="pecVal" name="pecVal" placeholder=""
+                                                    label="Valor (R$)" register={register} value={pecVal}
+                                                    onChange={e => { setValue("pecVal", e.target.value); setPecVal(e.target.value); errors.pecVal && trigger('pecVal'); }}
+                                                    erro={errors.pecVal} />
+                                                <label className='mb-1'></label>
+                                            </>
+                                        }
+                                        {vetPec.map((pec, k) => (
+                                            <>
+                                                <Select leitura={true} key={k} cols="col-md-6" id={pec.id} value={pec.id} classes="form-select-sm mb-0">
+                                                    <option selected key={k} value={pec.id}>{pec.nome}</option>
+                                                </Select>
+                                                <div className="col-md-2">
+                                                    <input disabled className="form-control form-control-sm" value={pec.qtde} />
+                                                </div>
+                                                <div className="col-md-3">
+                                                    <input disabled value={aredondar(pec.valor)} className="form-control form-control-sm" />
+                                                </div>
+                                                {visualizar ?
+                                                    <div className="col-md-1 btExcluirItem">
+                                                        <Button disabled
+                                                            className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                            <FiTrash className='btExcluir' />
+                                                        </Button>
+                                                    </div>
+                                                    :
+                                                    <div className="col-md-1 btExcluirItem">
+                                                        <Button data-toggle="tooltip" data-placement="bottom" title="Excluir"
+                                                            onClick={() => excluirPeca(pec.id)}
+                                                            className='m-0 p-0 px-1 border-0 bg-transparent'>
+                                                            <FiTrash className='btExcluir' />
+                                                        </Button>
+                                                    </div>
+                                                }
+
+                                            </>
+                                        ))}
+
+                                    </div>
+                                </div>
+                            }
                             <div className='col-md-12'>
-                                <label><b style={{ color: 'red' }}>Total (R$):</b> <b>{calcTot()}</b></label>
+                                <label><b style={{ color: 'red' }}>Total (R$):</b> <b>{aredondar(calcTot())}</b></label>
                             </div>
                         </Form>
+                        {(vetPec.length > 0 && vetParc.length > 0 && calcTot() != calcTotPecas()) &&
+                            <p className='mensagemForm mensagemForm-Alerta'>⚠️ O valor das parcelas não coincide com o valor das peças</p>
+                        }
                         {msgForm != '' && <p className={classes}> {msgForm} </p>}
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { setModal(false); }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarCP(e)) }} >
-                            Confirmar
-                        </Button>
+                        {visualizar ?
+                            <>
+                                <Button variant="secondary" disabled>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" disabled>
+                                    Confirmar
+                                </Button>
+                            </>
+                            :
+                            <>
+                                <Button variant="secondary" onClick={() => { setModal(false); }}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" variant="primary" onClick={(e) => { handleSubmit(gravarCP(e)) }} >
+                                    Confirmar
+                                </Button>
+                            </>
+                        }
+
                     </Modal.Footer>
                 </Modal>
+            </>
+            <>
+                <ToastMessage show={toast} titulo={tituloToast} onClose={() => setToast(false)}
+                    classes={classeToast} msg={msgToast} />
             </>
         </>
     )

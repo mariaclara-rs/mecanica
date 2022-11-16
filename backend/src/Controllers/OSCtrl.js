@@ -8,7 +8,7 @@ module.exports = {
             + "v.ve_id, v.ve_placa, c.cli_id, c.cli_nome, m.mc_id, m.mc_nome "
             + "from ordemservico os left join veiculo v on os.ve_id = v.ve_id "
             + "left join cliente c on (v.cli_id = c.cli_id or c.cli_id=os.cli_id)"
-            + "left join marca m on v.mc_id = m.mc_id";
+            + "left join marca m on v.mc_id = m.mc_id order by os.os_id";
         const os = await db.consulta(sql);
         return response.json(os.data);
     },

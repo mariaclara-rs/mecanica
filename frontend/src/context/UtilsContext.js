@@ -23,7 +23,7 @@ export function UtilsProvider({ children }) {
     async function alerta(cls, msg) {
         setClasses(cls)
         setMsgForm(msg);
-        await sleep(2500);
+        await sleep(5000);
         setMsgForm('');
     }
 
@@ -47,11 +47,16 @@ export function UtilsProvider({ children }) {
         window.location.reload();
 
     }
+
+    function aredondar(val){
+        return Math.round(val * 100) / 100
+    }
+
     return (
         <UtilsContext.Provider
             value={{
                 sleep, alerta, msgForm, setMsgForm, classes, setClasses, formatarDataParaUsuario, formatarHorarioParaUsuario, atual, setLinkAtual,
-                EnumTipoDespesa, logout
+                EnumTipoDespesa, logout, aredondar
             }}>
             {children}
         </UtilsContext.Provider>

@@ -11,6 +11,14 @@ export default function DadosProvider({ children }) {
     const [servicos, setServicos] = useState([]);
     const [pecas, setPecas] = useState([]);
     const [tpDespesa, setTpDespesa] = useState([]);
+    const [mecanica, setMecanica] = useState("");
+
+    async function carregarDadosMecanica(){
+      const resp = await api.get('/mecanica')
+      console.log("RESP: "+JSON.stringify(resp.data[0]))
+      setMecanica(resp.data[0])
+      return resp.data[0]
+    }
 
     async function carregarTpDespesa(){
       const resp = await api.get('/tpdespesa');
@@ -45,7 +53,8 @@ export default function DadosProvider({ children }) {
         <DadosContext.Provider
           value={{
             clis, carregarClis, dists, carregarDists, veiculos, carregarVeiculos,
-            servicos, carregarServicos, pecas, carregarPecas, tpDespesa, carregarTpDespesa
+            servicos, carregarServicos, pecas, carregarPecas, tpDespesa, carregarTpDespesa, carregarDadosMecanica,
+            mecanica, setMecanica
           }}>
           {children}
         </DadosContext.Provider>

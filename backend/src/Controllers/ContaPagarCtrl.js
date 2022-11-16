@@ -23,7 +23,6 @@ module.exports = {
             +"inner join peca p on pcp.pec_id=p.pec_id where cp.cp_id="+cp_id;
             pcp = await db.consulta(sql);
             strpcp = JSON.stringify(pcp.data);
-            console.log("sql:   "+sql)
 
             str = str.replace("}",",\"parcelas\":"+JSON.stringify(par.data)+",\"pecas\":"+JSON.stringify(pcp.data)+"}");
             if(i!=cp.data.length-1)
@@ -45,11 +44,11 @@ module.exports = {
         return response.json(result);
     },
     async editarSimplificado(request,response){
-        const {cp_id, cp_valTot,dist_id,tp_id} = request.body;
+        const {cp_id, cp_valTot,dist_id,tp_id,desc} = request.body;
         console.log(cp_id+"\n"+cp_valTot+"\n"+dist_id+"\n"+tp_id)
-        const sql = "UPDATE contapagar SET cp_valTot=?,dist_id=?,tp_id=? "
+        const sql = "UPDATE contapagar SET cp_valTot=?,dist_id=?,tp_id=?,cp_descricao=? "
                     +"WHERE cp_id = ?";
-        const valores = [cp_valTot,dist_id,tp_id,cp_id];
+        const valores = [cp_valTot,dist_id,tp_id,desc,cp_id];
         await db.conecta();
         const result = await db.manipula(sql,valores);
         return response.json(result);

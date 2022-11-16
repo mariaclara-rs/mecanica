@@ -42,7 +42,6 @@ module.exports = {
         return response.json(result);
     },
     async login(request,response){
-        console.log("login")
         const {login,senha} = request.query;
         //console.log(request.headers['authorization'])
         const sql = "SELECT * FROM usuario WHERE usu_login = ?";

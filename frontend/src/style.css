@@ -135,9 +135,9 @@ input::-webkit-inner-spin-button {
 
 .btExcluirItem {
     display: flex;
-    align-items: end;
+    align-items: flex-start;
     justify-content: center;
-    margin-bottom: 0.2em;
+    margin-top: 0.4em;
 }
 
 .btExcluir {
@@ -148,6 +148,14 @@ input::-webkit-inner-spin-button {
     color: #0d6efd
 }
 
+.btVisualizar{
+    color: #28a745
+}
+
+.btComum{
+    color: #231f20
+}
+
 .teste {
     min-height: 200px;
 }
@@ -156,7 +164,12 @@ input::-webkit-inner-spin-button {
     display: none;
 }
 
-.oi .modal-content{
+.oi .modal-content {
     width: 70%;
     margin: auto;
+}
+
+.scrollYTable{
+    overflow-y: auto;
+    height: 22em;
 }

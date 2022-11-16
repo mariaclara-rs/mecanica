@@ -3,7 +3,7 @@ const db = require('../models/Database')
 module.exports = {
     async listar (request, response){
         const con = await db.conecta();
-        const sql = "SELECT * FROM distribuidora ORDER BY dist_nome";
+        const sql = "SELECT * FROM distribuidora ORDER BY dist_id";
         const dist = await db.consulta(sql);
         return response.json(dist.data);
     },
@@ -21,10 +21,10 @@ module.exports = {
     async editar(request, response){
         const {id, nome,tel,cnpj} = request.body;
 
-        const sql = "UPDATE distribuidora SET dist_nome = ?, dist_tel = ? "+ 
+        const sql = "UPDATE distribuidora SET dist_nome = ?, dist_tel = ?, dist_cnpj = ? "+ 
             "where dist_id = ?";
         const valores = [
-            nome, tel, id
+            nome, tel, cnpj, id
         ];
         await db.conecta();
         const result = await db.manipula(sql, valores);
