@@ -21,7 +21,7 @@ function formatMoeda(val) {
     return val;
 }
 
-function EmitirClientesInadimplentes(dadosRel, mecanica = null) {
+function EmitirClientesInadimplentes(dadosRel, mecanica) {
     pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
     let textFooter = "";
