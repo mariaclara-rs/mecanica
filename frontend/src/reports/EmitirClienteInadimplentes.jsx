@@ -39,8 +39,8 @@ function EmitirClientesInadimplentes(dadosRel, mecanica) {
     }
     const clientes = dadosRel.map((d) => {
         var fone = d.cli_tel;
-        var foneFormat = "";
-        if (fone != "" && fone != null)
+        var foneFormat = fone;
+        if (fone != "" && fone != null && !fone.includes('('))
             foneFormat = "(" + fone.substring(0, 2) + ") " + fone.substring(2, fone.length);
         return [
             { text: d.cli_nome },

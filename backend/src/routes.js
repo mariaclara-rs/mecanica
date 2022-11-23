@@ -148,5 +148,6 @@ const RelCtrl = require ('./Controllers/RelatorioCtrl')
 
 routes.get('/relcaixa',RelCtrl.CaixaPeriodo);
 routes.get('/clientesinadimplentes',RelCtrl.ClientesInadimplentes)
+routes.get('/relcaixasimplificado',RelCtrl.CaixaPeriodoSimplificado);
 
 module.exports = routes;

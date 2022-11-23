@@ -12,8 +12,12 @@ import { Modal } from 'react-bootstrap';
 import Form from './Form';
 import api from '../services/api';
 
+import Dropdown from 'react-bootstrap/Dropdown';
+import SplitButton from 'react-bootstrap/SplitButton';
+
 import { DadosContext } from '../context/DadosContext';
 import EmitirRelCaixa from '../reports/EmitirRelCaixa';
+import EmitirRelCaixaSimplificado from '../reports/EmitirRelCaixaSimplificado';
 //FaTools
 
 function Sidebar() {
@@ -28,8 +32,8 @@ function Sidebar() {
 
     const [msgForm, setMsgForm] = useState("");
     const [classes, setClasses] = useState("");
-
-    const {carregarDadosMecanica } = useContext(DadosContext)
+    const [tipoRel, setTipoRel] = useState("");
+    const { carregarDadosMecanica } = useContext(DadosContext)
 
     const options = [{ link: "/ordemservico", name: "Ordem de Serviço", icon: <RiListSettingsLine size={20} style={{ margin: '0.3rem' }} /> },
     { link: "/agendamentos", name: "Agendamentos", icon: <BsClockHistory size={18} style={{ margin: '0.3rem' }} /> },
@@ -81,9 +85,16 @@ function Sidebar() {
                     dtIni: dataIni,
                     dtFim: dataFim
                 };
-                
-                const resp = await api.get('/relcaixa', { params })
-                carregarDadosMecanica().then((respMec)=>{EmitirRelCaixa(dataIni, dataFim, resp.data,respMec);});
+                let resp;
+                if (tipoRel == "C") {
+                    resp = await api.get('/relcaixa', { params })
+                    carregarDadosMecanica().then((respMec) => { EmitirRelCaixa(dataIni, dataFim, resp.data, respMec);});
+                }
+                else if(tipoRel == "S"){
+                    resp = await api.get('/relcaixasimplificado', { params })
+                    console.log(resp.status)
+                    carregarDadosMecanica().then((respMec2) => { EmitirRelCaixaSimplificado(dataIni, dataFim, resp.data, respMec2);});
+                }
             }
         }
         else {
@@ -152,12 +163,19 @@ function Sidebar() {
                             </li>
                         )
                     })}
-                    {options.length > 0 &&
-                        <li key={options.length}>
-                            <a onClick={() => setModal(true)}>Relário de Caixa</a>
-                        </li>
-                    }
-                    <li key={options.length+1}>{/*f2f2f1*/}
+                    <li key={options.length}>
+                        <a>
+                            <SplitButton
+                                id='dropdown-button-drop-end'
+                                drop='end'
+                                variant="light"
+                                title='Relatório de Caixa'>
+                                <Dropdown.Item eventKey="1" style={{ fontSize: '0.95em' }} onClick={() => { setModal(true); setTipoRel("S") }}>Simplificado</Dropdown.Item>
+                                <Dropdown.Item eventKey="2" style={{ fontSize: '0.95em' }} onClick={() => { setModal(true); setTipoRel("C") }}>Completo</Dropdown.Item>
+                            </SplitButton>
+                        </a>
+                    </li>
+                    <li key={options.length + 1}>{/*f2f2f1*/}
                         {pageatual == '/meusdados' ?
                             <a href='/meusdados' style={{ backgroundColor: '#6c757d', color: '#fff' }}> {/*style={{backgroundColor:active && 'red'}}*/}
                                 Perfil
